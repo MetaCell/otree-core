@@ -330,7 +330,7 @@ def augment_settings(settings):
         'NO_EXPERIMENT_APPS': no_experiment_apps,
         'INSTALLED_OTREE_APPS': all_otree_apps,
         'MESSAGE_TAGS': {messages.ERROR: 'danger'},
-        'LOGIN_REDIRECT_URL': 'Sessions',
+        'LOGIN_REDIRECT_URL': '/',
     }
 
     settings.setdefault('LANGUAGE_CODE', global_settings.LANGUAGE_CODE)
