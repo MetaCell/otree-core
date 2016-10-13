@@ -212,7 +212,7 @@ class FormatSourceSnippetTest(TestCase):
     def test_unicode_contents(self):
         """
         Testing for the issue described in
-        https://github.com/oTree-org/otree-core/issues/408
+        https://github.com/oTree-org/otree/issues/408
         """
         source = u'{% formfield player.contribution with label = "好" %}'
         # Should not raise UnicodeEncodeError

@@ -31,7 +31,7 @@ if sys.argv[-1] == 'publish':
 
 
 setup(
-    name='otree-core',
+    name='otree',
     version=version,
     include_package_data=True,
     license='MIT License',

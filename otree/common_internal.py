@@ -201,7 +201,7 @@ def check_pypi_for_updates():
 
     try:
         response = requests.get(
-            'http://pypi.python.org/pypi/otree-core/json',
+            'http://pypi.python.org/pypi/otree/json',
             timeout=5,
         )
     except:
@@ -249,10 +249,10 @@ def check_pypi_for_updates():
         else:
             pip_command = 'pip'
         update_message = (
-            'Your otree-core package is out-of-date '
+            'Your otree package is out-of-date '
             '(version {}; latest is {}). '
             'You should upgrade with:\n '
-            '"{} install --upgrade otree-core"\n '
+            '"{} install --upgrade otree"\n '
             'and update your requirements_base.txt.'.format(
                 installed_dotted, newest_dotted, pip_command))
     else:
