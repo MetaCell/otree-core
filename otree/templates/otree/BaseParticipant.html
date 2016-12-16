@@ -25,13 +25,13 @@
                 {% form form using %}
                     {% formconfig row using "floppyforms/rows/bootstrap.html" %}
                     <div id="otree-content">
-
+                        {% if view.has_timeout %}
+                            {% include 'otree/includes/TimeLimit.html' with form_element_id="form" %}
+                        {% endif %}
                         {% block content %}{% endblock %}
 
                     </div>
-                    {% if view.has_timeout %}
-                        {% include 'otree/includes/TimeLimit.html' with form_element_id="form" %}
-                    {% endif %}
+
                 {% endform %}
             </form>
         </div>

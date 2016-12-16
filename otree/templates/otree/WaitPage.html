@@ -1,4 +1,4 @@
-{% extends 'otree/Base.html' %}
+{% extends "global/Base.html" %}
 {% load i18n %}
 {% load staticfiles %}
 {% block head_title %}{{ title_text }}{% endblock %}
@@ -29,31 +29,27 @@
     </style>
 {% endblock %}
 
-{% block content_main %}
 
-<div class="container" style='max-width:970px'>
-    <div class="panel panel-primary">
-        <div class="panel-heading">
-            <h3 class="panel-title">{% block title %}{{ title_text }}{% endblock %}</h3>
-        </div>
-        <div class="panel-body">
-            <div id="error-notice" class="alert alert-danger" style="display:none">
-                {% blocktrans %}An error occurred. Please check the logs or ask the administrator for help.{% endblocktrans %}
-            </div>
-            <div id="error-traceback" class="alert alert-danger" style="display:none"></div>
-            {% block content %}
-            <p>{{ body_text }}</p>
-            {% endblock %}
-            <div class="progress progress-striped active" id='waitingIndicator'>
-                <div class="progress-bar progress-bar" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
-            </div>
-        </div>
-    </div>
-    {% if view.is_debug %}
-        {% include 'otree/includes/debug_info.html' %}
-    {% endif %}
-</div>
+{% block current %}
+    {{ body_text }}
 {% endblock %}
+
+
+{% block otherballoon %}
+    <div id="waitMessage">...</div>
+{% endblock %}
+
+{% block selfballoon %}
+    Your turn...
+{% endblock %}
+
+
+
+<div id="error-notice" class="alert alert-danger" style="display:none">
+    {% blocktrans %}An error occurred. Please check the logs or ask the administrator for help.{% endblocktrans %}
+</div>
+<div id="error-traceback" class="alert alert-danger" style="display:none"></div>
+
 
 {% block internal_scripts %}
     {{ block.super }}
@@ -64,6 +60,24 @@ $(document).ready(function () {
     var socket;
 
     initWebSocket();
+    loopWaitMessages();
+
+    var waitMessages=[];
+    waitMessages[0]="...mmm...";
+    waitMessages[1]="...let me think...";
+    waitMessages[2]="...one more second...";
+
+
+
+    function loopWaitMessages(){
+        var i=0;
+        window.setInterval(function(){
+            $("#waitMessage").html(waitMessages[i++]);
+            if(i>waitMessages.length){
+                i=0;
+            }
+        },6000);
+    }
 
     function initWebSocket() {
 
