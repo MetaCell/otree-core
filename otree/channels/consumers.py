@@ -7,9 +7,11 @@ import threading
 import django.db
 import django.utils.timezone
 import traceback
+import uuid
 from datetime import timedelta
 
 from django.conf import settings
+from django.core.urlresolvers import reverse
 from channels import Group
 from channels.sessions import channel_session, enforce_ordering
 
@@ -58,9 +60,6 @@ def connect_wait_page(message, params):
 
 
 def disconnect_wait_page(message, params):
-    # log path
-    logger.info('path: ' + message.content['path'])
-
     session_pk, page_index, model_name, model_pk = params.split(',')
     page_index = int(page_index)
     model_pk = int(model_pk)
@@ -106,6 +105,8 @@ def create_session(message):
     group = Group(message['channels_group_name'])
 
     kwargs = message['kwargs']
+
+    logger.info('session_config_name: ' + kwargs['session_config_name'] + ' num_participants: ' + str(kwargs['num_participants']))
 
     # because it's launched through web UI
     kwargs['honor_browser_bots_config'] = True
@@ -327,7 +328,8 @@ def ws_matchmaking_connect(message, params):
                                         'game': game,
                                         'reply_channel': reply_channel})
 
-    reply_channel.send({'text': 'You have joined the queue for ' + game})
+    message = json.dumps({'status': 'QUEUE_JOINED', 'message': 'You have joined the queue for ' + game})
+    reply_channel.send({'text': message})
 
     # whenever a user connects, check if we have 2 users to start a given game
     matching_players = []
@@ -336,7 +338,7 @@ def ws_matchmaking_connect(message, params):
             matching_players.append(player)
 
     if len(matching_players) >= 2:
-        make_match(matching_players)
+        make_match(matching_players, game)
 
 
 @enforce_ordering(slight=True)
@@ -356,6 +358,26 @@ def ws_matchmaking_disconnect(message, params):
         logger.info('Item already removed from matchmaking queue')
 
 
+def manually_create_session_for_matchmaking(game, participants):
+    session_kwargs = {}
+    session_kwargs['session_config_name'] = game
+    session_kwargs['num_participants'] = participants
+    pre_create_id = uuid.uuid4().hex
+    session_kwargs['_pre_create_id'] = pre_create_id
+
+    session = None
+
+    try:
+        session = otree.session.create_session(**session_kwargs)
+    except Exception as e:
+        # full error message is printed to console (though sometimes not?)
+        error_message = 'Failed to create session: "{}"'.format(e)
+        logger.error(error_message)
+        raise
+
+    return session
+
+
 # declare synchronized decorator
 def synchronized(func):
     func.__lock__ = threading.Lock()
@@ -369,10 +391,31 @@ def synchronized(func):
 
 # synchronized match making function
 @synchronized
-def make_match(matching_players):
-    for indx, player in enumerate(matching_players):
-        if indx < 2:
-            # take first 2 matching players out of queue
-            settings.MATCH_MAKING_QUEUE.remove(player)
-            # send game starting message
-            player['reply_channel'].send({'text': 'Opponent found! Your game is about to start'})
+def make_match(matching_players, game):
+    # double check we have at least 2 matches before doing anything
+    if len(matching_players) >= 2:
+        # create session and get url for redirect
+        session = manually_create_session_for_matchmaking(game, 2)
+        session_start_urls = [
+            participant._start_url()
+            for participant in session.get_participants()
+        ]
+
+        # log some stuff
+        logger.info('Session create for: ' + game)
+        logger.info('P1 URL: ' + session_start_urls[0])
+        logger.info('P2 URL: ' + session_start_urls[1])
+
+        for indx, player in enumerate(matching_players):
+            if indx < 2:
+                # take first 2 matching players out of queue
+                settings.MATCH_MAKING_QUEUE.remove(player)
+
+                message = json.dumps({
+                    'status': 'SESSION_CREATED',
+                    'message': 'Opponent found! Your game is about to start',
+                    'url': session_start_urls[indx]
+                })
+
+                # send game starting message
+                player['reply_channel'].send({"text": message})

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import logging
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -7,6 +8,9 @@ import vanilla
 
 from otree.session import SESSION_CONFIGS_DICT
 from otree.common_internal import create_session_and_redirect
+
+# Get an instance of a logger
+logger = logging.getLogger(__name__)
 
 # if it's debug mode, we should always generate a new session
 # because a bug might have been fixed
