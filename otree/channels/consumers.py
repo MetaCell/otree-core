@@ -3,12 +3,15 @@
 
 import json
 import logging
+import threading
 import django.db
 import django.utils.timezone
 import traceback
 from datetime import timedelta
 
+from django.conf import settings
 from channels import Group
+from channels.sessions import channel_session, enforce_ordering
 
 import otree.session
 from otree.models import Participant, Session
@@ -21,6 +24,7 @@ from otree.models_concrete import (
     FAILURE_MESSAGE_MAX_LENGTH, BrowserBotsLauncherSessionCode)
 from otree.room import ROOM_DICT
 
+# Get an instance of a logger
 logger = logging.getLogger(__name__)
 
 def connect_wait_page(message, params):
@@ -54,6 +58,9 @@ def connect_wait_page(message, params):
 
 
 def disconnect_wait_page(message, params):
+    # log path
+    logger.info('path: ' + message.content['path'])
+
     session_pk, page_index, model_name, model_pk = params.split(',')
     page_index = int(page_index)
     model_pk = int(model_pk)
@@ -298,3 +305,74 @@ def connect_browser_bot(message):
 
 def disconnect_browser_bot(message):
     Group('browser_bot_wait').discard(message.reply_channel)
+
+
+@enforce_ordering(slight=True)
+@channel_session
+def ws_matchmaking_connect(message, params):
+    # Work out game name from path (ignore slashes)
+    game = params.split(',')[0]
+    session_id = message.channel_session.session_key
+    reply_channel = message.reply_channel
+
+    # log name of game
+    logger.info('path: ' + message.content['path'])
+    logger.info('game name: ' + game)
+
+    # Save game in session and add us to the group
+    message.channel_session['game'] = game
+    Group("chat-%s" % game).add(message.reply_channel)
+
+    settings.MATCH_MAKING_QUEUE.append({'session': session_id,
+                                        'game': game,
+                                        'reply_channel': reply_channel})
+
+    reply_channel.send({'text': 'You have joined the queue for ' + game})
+
+    # whenever a user connects, check if we have 2 users to start a given game
+    matching_players = []
+    for player in settings.MATCH_MAKING_QUEUE:
+        if player['game'] == game:
+            matching_players.append(player)
+
+    if len(matching_players) >= 2:
+        make_match(matching_players)
+
+
+@enforce_ordering(slight=True)
+@channel_session
+def ws_matchmaking_disconnect(message, params):
+    Group("chat-%s" % message.channel_session['game']).discard(message.reply_channel)
+
+    # remove user from matchmaking queue in case of disconnect
+    session_id = message.channel_session.session_key
+    reply_channel = message.reply_channel
+    try:
+        settings.MATCH_MAKING_QUEUE.remove({'session': session_id,
+                                            'game': message.channel_session['game'],
+                                            'reply_channel': reply_channel})
+    except:
+        # the user might have been removed because the game started
+        logger.info('Item already removed from matchmaking queue')
+
+
+# declare synchronized decorator
+def synchronized(func):
+    func.__lock__ = threading.Lock()
+
+    def synced_func(*args, **kws):
+        with func.__lock__:
+            return func(*args, **kws)
+
+    return synced_func
+
+
+# synchronized match making function
+@synchronized
+def make_match(matching_players):
+    for indx, player in enumerate(matching_players):
+        if indx < 2:
+            # take first 2 matching players out of queue
+            settings.MATCH_MAKING_QUEUE.remove(player)
+            # send game starting message
+            player['reply_channel'].send({'text': 'Opponent found! Your game is about to start'})

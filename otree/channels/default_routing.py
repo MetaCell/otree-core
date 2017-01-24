@@ -7,6 +7,10 @@ from otree.channels import consumers
 
 
 channel_routing = [
+    route('websocket.connect', consumers.ws_matchmaking_connect,
+          path=r'^/matchmaking/(?P<params>[\w,]+)/$'),
+    route('websocket.disconnect', consumers.ws_matchmaking_disconnect,
+          path=r'^/matchmaking/(?P<params>[\w,]+)/$'),
     route(
         'websocket.connect', consumers.connect_wait_page,
         path=r'^/wait_page/(?P<params>[\w,]+)/$'),
@@ -47,6 +51,5 @@ channel_routing = [
           path=r'^/browser_bot_wait/$'),
     route('websocket.disconnect',
           consumers.disconnect_browser_bot,
-          path=r'^/browser_bot_wait/$'),
-
+          path=r'^/browser_bot_wait/$')
 ]
