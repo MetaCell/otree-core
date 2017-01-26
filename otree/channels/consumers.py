@@ -324,9 +324,7 @@ def ws_matchmaking_connect(message, params):
     message.channel_session['game'] = game
     Group("chat-%s" % game).add(message.reply_channel)
 
-    settings.MATCH_MAKING_QUEUE.append({'session': session_id,
-                                        'game': game,
-                                        'reply_channel': reply_channel})
+    enqueue_player({'session': session_id, 'game': game, 'reply_channel': reply_channel})
 
     message = json.dumps({'status': 'QUEUE_JOINED', 'message': 'You have joined the queue for ' + game})
     reply_channel.send({'text': message})
@@ -350,9 +348,7 @@ def ws_matchmaking_disconnect(message, params):
     session_id = message.channel_session.session_key
     reply_channel = message.reply_channel
     try:
-        settings.MATCH_MAKING_QUEUE.remove({'session': session_id,
-                                            'game': message.channel_session['game'],
-                                            'reply_channel': reply_channel})
+        dequeue_player({'session': session_id, 'game': message.channel_session['game'], 'reply_channel': reply_channel})
     except:
         # the user might have been removed because the game started
         logger.info('Item already removed from matchmaking queue')
@@ -366,7 +362,6 @@ def manually_create_session_for_matchmaking(game, participants):
     session_kwargs['_pre_create_id'] = pre_create_id
 
     session = None
-
     try:
         session = otree.session.create_session(**session_kwargs)
     except Exception as e:
@@ -389,7 +384,19 @@ def synchronized(func):
     return synced_func
 
 
-# synchronized match making function
+# add to matchmaking queue
+@synchronized
+def enqueue_player(meta):
+    settings.MATCH_MAKING_QUEUE.append(meta)
+
+
+#remove from matchmaking queue
+@synchronized
+def dequeue_player(meta):
+    settings.MATCH_MAKING_QUEUE.remove(meta)
+
+
+# synchronized match making function - create session and pop players from queue
 @synchronized
 def make_match(matching_players, game):
     # double check we have at least 2 matches before doing anything
