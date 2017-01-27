@@ -322,7 +322,6 @@ def ws_matchmaking_connect(message, params):
 
     # Save game in session and add us to the group
     message.channel_session['game'] = game
-    Group("chat-%s" % game).add(message.reply_channel)
 
     enqueue_player({'session': session_id, 'game': game, 'reply_channel': reply_channel})
 
@@ -342,8 +341,6 @@ def ws_matchmaking_connect(message, params):
 @enforce_ordering(slight=True)
 @channel_session
 def ws_matchmaking_disconnect(message, params):
-    Group("chat-%s" % message.channel_session['game']).discard(message.reply_channel)
-
     # remove user from matchmaking queue in case of disconnect
     session_id = message.channel_session.session_key
     reply_channel = message.reply_channel
@@ -354,12 +351,13 @@ def ws_matchmaking_disconnect(message, params):
         logger.info('Item already removed from matchmaking queue')
 
 
-def manually_create_session_for_matchmaking(game, participants):
+def manually_create_session_for_matchmaking(game, participants, bot_opponent):
     session_kwargs = {}
     session_kwargs['session_config_name'] = game
     session_kwargs['num_participants'] = participants
     pre_create_id = uuid.uuid4().hex
     session_kwargs['_pre_create_id'] = pre_create_id
+    session_kwargs['bot_opponent'] = bot_opponent
 
     session = None
     try:
@@ -402,7 +400,7 @@ def make_match(matching_players, game):
     # double check we have at least 2 matches before doing anything
     if len(matching_players) >= 2:
         # create session and get url for redirect
-        session = manually_create_session_for_matchmaking(game, 2)
+        session = manually_create_session_for_matchmaking(game, 2, False)
         session_start_urls = [
             participant._start_url()
             for participant in session.get_participants()
