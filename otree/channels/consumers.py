@@ -403,7 +403,7 @@ def ws_matchmaking_message(message, params):
             # if so, make match (same as connect logic)
             # NOTE: this should never happen because match is made on connect
             make_match(matching_players, game)
-        else:
+        elif len(matching_players) == 1:
             # if not, dequeue user immediately and then create a session with bot_opponent
             try:
                 dequeue_player(
@@ -425,17 +425,15 @@ def ws_matchmaking_message(message, params):
             logger.info('P1 URL (bot): ' + session_start_urls[0])
             logger.info('P2 URL: ' + session_start_urls[1])
 
-            for indx, player in enumerate(matching_players):
-                # bot is always idx == 0
-                if indx == 1:
-                    message_back = json.dumps({
-                        'status': 'SESSION_CREATED',
-                        'message': 'Opponent found! Your game is about to start',
-                        'url': session_start_urls[indx]
-                    })
-
-                    # send game starting message
-                    player['reply_channel'].send({"text": message_back})
+            player = matching_players[0]
+            message_back = json.dumps({
+                'status': 'SESSION_CREATED',
+                'message': 'Opponent found! Your game is about to start',
+                # user url is always the one with idx == 1
+                'url': session_start_urls[1]
+            })
+            # send game starting message that will cause redirection
+            player['reply_channel'].send({"text": message_back})
 
             # create bot runner
             bot_runner = create_bot_runner(session)
