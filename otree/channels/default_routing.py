@@ -9,6 +9,8 @@ from otree.channels import consumers
 channel_routing = [
     route('websocket.connect', consumers.ws_matchmaking_connect,
           path=r'^/matchmaking/(?P<params>[\w,]+)/$'),
+    route('websocket.receive', consumers.ws_matchmaking_message,
+          path=r'^/matchmaking/(?P<params>[\w,]+)/$'),
     route('websocket.disconnect', consumers.ws_matchmaking_disconnect,
           path=r'^/matchmaking/(?P<params>[\w,]+)/$'),
     route(
