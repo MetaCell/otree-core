@@ -68,7 +68,6 @@ def chat_disconnect(message, params):
     Group("chat-%s" % session_id).discard(message.reply_channel)
 
 
-
 def connect_wait_page(message, params):
     session_pk, page_index, model_name, model_pk = params.split(',')
     session_pk = int(session_pk)
