@@ -498,7 +498,7 @@ def make_match(matching_players, game):
 def create_bot_runner(session):
     bots= []
     for participant in session.get_participants().filter(_is_bot=True):
-        bot = ParticipantBot(participant, max_wait_seconds=10)
+        bot = ParticipantBot(participant)
         bots.append(bot)
         bot.open_start_url()
 
