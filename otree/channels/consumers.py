@@ -15,17 +15,16 @@ from django.conf import settings
 from channels import Group
 from channels.sessions import channel_session, enforce_ordering
 
+
 import otree.session
 from otree.models import Participant, Session
-from otree.bots import *
-from otree.models_concrete import (
-    CompletedGroupWaitPage, CompletedSubsessionWaitPage)
-from otree.common_internal import (
-    channels_wait_page_group_name, channels_create_session_group_name)
-from otree.models_concrete import (
-    FailedSessionCreation, ParticipantRoomVisit,
-    FAILURE_MESSAGE_MAX_LENGTH, BrowserBotsLauncherSessionCode)
+from otree.models_concrete import (CompletedGroupWaitPage, CompletedSubsessionWaitPage)
+from otree.common_internal import (channels_wait_page_group_name, channels_create_session_group_name)
+from otree.models_concrete import (FailedSessionCreation, ParticipantRoomVisit,
+                                   FAILURE_MESSAGE_MAX_LENGTH, BrowserBotsLauncherSessionCode)
 from otree.room import ROOM_DICT
+from otree.bots.bot import ParticipantBot
+from otree.bots.runner import SessionBotRunner
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -378,16 +377,16 @@ def ws_matchmaking_connect(message, params):
 
 
 # threaded function to call play on bot_runner
-def bot_runner_play(args):
-    args[0].play_until_end()
+def bot_runner_play(bot_runner=None):
+    bot_runner.play_until_end()
 
 
 @enforce_ordering(slight=True)
 @channel_session
 def ws_matchmaking_message(message, params):
     # only do something if status is polling
-    message = json.loads(message['text'])
-    if message.status == 'POLLING':
+    payload = json.loads(message['text'])
+    if payload['status'] == 'POLLING':
         # we use this exclusively for polling and starting bot opponent sessions
         session_id = message.channel_session.session_key
         reply_channel = message.reply_channel
@@ -414,7 +413,7 @@ def ws_matchmaking_message(message, params):
                 logger.info('User already removed from matchmaking queue')
 
             # create a session with bot_opponent
-            session = manually_create_session_for_matchmaking(game, 1, True)
+            session = manually_create_session_for_matchmaking(game, 2, True)
             session_start_urls = [
                 participant._start_url()
                 for participant in session.get_participants()
@@ -423,24 +422,25 @@ def ws_matchmaking_message(message, params):
             # setup user
             # log some stuff
             logger.info('Session (with bot opponent) created for: ' + game)
-            logger.info('P1 URL: ' + session_start_urls[0])
-            logger.info('P2 URL (bot): ' + session_start_urls[1])
+            logger.info('P1 URL (bot): ' + session_start_urls[0])
+            logger.info('P2 URL: ' + session_start_urls[1])
 
             for indx, player in enumerate(matching_players):
-                if indx < 1:
-                    message = json.dumps({
+                # bot is always idx == 0
+                if indx == 1:
+                    message_back = json.dumps({
                         'status': 'SESSION_CREATED',
                         'message': 'Opponent found! Your game is about to start',
                         'url': session_start_urls[indx]
                     })
 
                     # send game starting message
-                    player['reply_channel'].send({"text": message})
+                    player['reply_channel'].send({"text": message_back})
 
             # create bot runner
             bot_runner = create_bot_runner(session)
             # spawn thread and call play_until_end on bot
-            thread = Thread(target=bot_runner_play, args=(bot_runner,))
+            thread = Thread(target=bot_runner_play, kwargs={'bot_runner': bot_runner})
             thread.start()
 
 

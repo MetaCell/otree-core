@@ -5,6 +5,7 @@ import re
 import decimal
 import logging
 import abc
+import time
 from importlib import import_module
 
 import six
@@ -46,6 +47,13 @@ but these form fields were not found in the HTML of the page
 
 class BOTS_CHECK_HTML:
     pass
+
+
+class Pause(object):
+
+    def __init__(self, seconds):
+        self.seconds = seconds
+
 
 def SubmitInternal(submission_tuple, check_html=BOTS_CHECK_HTML):
 
@@ -235,6 +243,22 @@ class ParticipantBot(six.with_metaclass(abc.ABCMeta, test.Client)):
                     else:
                         raise
 
+    def play_session(self):
+        for value in self.submits_generator:
+            self.finished_wait_page(self.max_wait_seconds)
+            if isinstance(value, Pause):
+                # submit is actually a pause
+                pause = value
+                time.sleep(pause.seconds)
+            else:
+                submit = value
+                self.submit(submit)
+                # I think return None is OK
+
+    def finished_wait_page(self, timeout):
+        pass
+
+
     def assert_html_ok(self, submission):
         if submission['check_html']:
             field_names = [
@@ -361,3 +385,9 @@ class PlayerBot(object):
     @property
     def html(self):
         return self.participant_bot.html
+
+    def pause(self, seconds):
+        '''
+        Pause == sleep
+        '''
+        return Pause(seconds)

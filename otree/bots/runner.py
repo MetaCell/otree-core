@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
+import random
 import logging
 from collections import OrderedDict
 import mock
+import datetime
+import os
+import codecs
 
 from django.db.migrations.loader import MigrationLoader
 from django.conf import settings
@@ -13,11 +16,8 @@ import sys
 
 import otree.session
 import otree.common_internal
-
-from .bot import ParticipantBot
-import datetime
-import os
-import codecs
+from otree.models import Session
+from .bot import ParticipantBot, Pause
 import otree.export
 
 logger = logging.getLogger(__name__)
@@ -25,39 +25,84 @@ logger = logging.getLogger(__name__)
 
 class SessionBotRunner(object):
     def __init__(self, bots, session_code):
+        self.session_code = session_code
+        self.stuck = OrderedDict()
+        self.playable = OrderedDict()
         self.bots = OrderedDict()
+        self.all_bot_codes = {bot.participant.code for bot in bots}
 
         for bot in bots:
             self.bots[bot.participant.id] = bot
 
     def play_until_end(self):
-        '''round-robin'''
-        loops_without_progress = 0
         while True:
-            if len(self.bots) == 0:
-                print('Bots done!')
+            # keep un-sticking everyone who's stuck
+            stuck_pks = list(self.stuck.keys())
+            done, num_submits_made = self.play_until_stuck(stuck_pks)
+            if done:
+                logger.info('SessionBotRunner: Bots done!')
                 return
-            if loops_without_progress > 2:
-                raise AssertionError('Bots got stuck')
+
+    def play_until_stuck(self, unstuck_ids=None):
+        unstuck_ids = unstuck_ids or []
+        for pk in unstuck_ids:
+            # the unstuck ID might be a human player, not a bot.
+            if pk in self.all_bot_codes:
+                self.playable[pk] = self.stuck.pop(pk)
+        num_submits_made = 0
+        while True:
+            # round-robin algorithm
+            if len(self.playable) == 0:
+                if len(self.stuck) == 0:
+                    return (True, num_submits_made)
+                # stuck
+                return (False, num_submits_made)
             # store in a separate list so we don't mutate the iterable
-            playable_ids = list(self.bots.keys())
-            progress_made = False
+            playable_ids = list(self.playable.keys())
             for pk in playable_ids:
-                bot = self.bots[pk]
+                r = random.random()
+                bot = self.playable[pk]
+                logger.info('{}: checking if on wait page'.format(pk))
                 if bot.on_wait_page():
-                    pass
+                    logger.info('...{} is on wait page: {}'.format(pk, bot.path))
+                    logger.info(r)
+                    self.stuck[pk] = self.playable.pop(pk)
                 else:
+                    logger.info('...{} is not on wait page'.format(pk))
+                    logger.info(r)
                     try:
-                        submission = next(bot.submits_generator)
+                        value = next(bot.submits_generator)
                     except StopIteration:
                         # this bot is finished
-                        self.bots.pop(pk)
-                        progress_made = True
+                        self.playable.pop(pk)
+                        logger.info(r)
+                        logger.info('{} is done!'.format(pk))
                     else:
-                        bot.submit(submission)
-                        progress_made = True
-            if not progress_made:
-                loops_without_progress += 1
+                        if isinstance(value, Pause):
+                            pause = value
+                            self.stuck[pk] = self.playable.pop(pk)
+                            self.continue_bots_until_stuck_task(self.session_code, [pk])
+                        else:
+                            submit = value
+                            logger.info('{}: about to submit {}'.format(pk, submit))
+                            bot.submit(submit)
+                            logger.info('{}: submitted {}'.format(pk, submit))
+                            num_submits_made += 1
+
+    def continue_bots_until_stuck_task(self, session_code, unstuck_ids=None):
+        try:
+            self.play_until_stuck(unstuck_ids)
+        except Exception as exc:
+            session = Session.objects.get(code=session_code)
+            session._bots_errored = True
+            session.save()
+            logger.error('Bots encountered an error: "{}". For the full traceback, see the server logs.'.format(exc))
+            raise
+        logger.info('Bots finished')
+
+        session = Session.objects.get(code=session_code)
+        session._bots_finished = True
+        session.save()
 
 
 @pytest.mark.django_db(transaction=True)
