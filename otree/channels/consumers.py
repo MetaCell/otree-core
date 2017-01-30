@@ -9,14 +9,15 @@ import django.utils.timezone
 import traceback
 import uuid
 from datetime import timedelta
+from threading import Thread
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from channels import Group
 from channels.sessions import channel_session, enforce_ordering
 
 import otree.session
 from otree.models import Participant, Session
+from otree.bots import *
 from otree.models_concrete import (
     CompletedGroupWaitPage, CompletedSubsessionWaitPage)
 from otree.common_internal import (
@@ -359,7 +360,6 @@ def ws_matchmaking_connect(message, params):
 
     # Save game in session and add us to the group
     message.channel_session['game'] = game
-    Group("chat-%s" % game).add(message.reply_channel)
 
     enqueue_player({'session': session_id, 'game': game, 'reply_channel': reply_channel})
 
@@ -376,11 +376,76 @@ def ws_matchmaking_connect(message, params):
         make_match(matching_players, game)
 
 
+# threaded function to call play on bot_runner
+def bot_runner_play(args):
+    args[0].play_until_end()
+
+
+@enforce_ordering(slight=True)
+@channel_session
+def ws_matchmaking_message(message, params):
+    # only do something if status is polling
+    message = json.loads(message['text'])
+    if message.status == 'POLLING':
+        # we use this exclusively for polling and starting bot opponent sessions
+        session_id = message.channel_session.session_key
+        reply_channel = message.reply_channel
+        # Work out game name from path (ignore slashes)
+        game = params.split(',')[0]
+
+        # check if we have another user other than us that wants to play the same game
+        matching_players = []
+        for player in settings.MATCH_MAKING_QUEUE:
+            if player['game'] == game:
+                matching_players.append(player)
+
+        if len(matching_players) >= 2:
+            # if so, make match (same as connect logic)
+            # NOTE: this should never happen because match is made on connect
+            make_match(matching_players, game)
+        else:
+            # if not, dequeue user immediately and then create a session with bot_opponent
+            try:
+                dequeue_player(
+                    {'session': session_id, 'game': message.channel_session['game'], 'reply_channel': reply_channel})
+            except:
+                # the user might have been removed because the game started
+                logger.info('User already removed from matchmaking queue')
+
+            # create a session with bot_opponent
+            session = manually_create_session_for_matchmaking(game, 1, True)
+            session_start_urls = [
+                participant._start_url()
+                for participant in session.get_participants()
+            ]
+
+            # setup user
+            # log some stuff
+            logger.info('Session (with bot opponent) created for: ' + game)
+            logger.info('P1 URL: ' + session_start_urls[0])
+            logger.info('P2 URL (bot): ' + session_start_urls[1])
+
+            for indx, player in enumerate(matching_players):
+                if indx < 1:
+                    message = json.dumps({
+                        'status': 'SESSION_CREATED',
+                        'message': 'Opponent found! Your game is about to start',
+                        'url': session_start_urls[indx]
+                    })
+
+                    # send game starting message
+                    player['reply_channel'].send({"text": message})
+
+            # create bot runner
+            bot_runner = create_bot_runner(session)
+            # spawn thread and call play_until_end on bot
+            thread = Thread(target=bot_runner_play, args=(bot_runner,))
+            thread.start()
+
+
 @enforce_ordering(slight=True)
 @channel_session
 def ws_matchmaking_disconnect(message, params):
-    Group("chat-%s" % message.channel_session['game']).discard(message.reply_channel)
-
     # remove user from matchmaking queue in case of disconnect
     session_id = message.channel_session.session_key
     reply_channel = message.reply_channel
@@ -388,15 +453,16 @@ def ws_matchmaking_disconnect(message, params):
         dequeue_player({'session': session_id, 'game': message.channel_session['game'], 'reply_channel': reply_channel})
     except:
         # the user might have been removed because the game started
-        logger.info('Item already removed from matchmaking queue')
+        logger.info('User already removed from matchmaking queue')
 
 
-def manually_create_session_for_matchmaking(game, participants):
+def manually_create_session_for_matchmaking(game, participants, bot_opponent):
     session_kwargs = {}
     session_kwargs['session_config_name'] = game
     session_kwargs['num_participants'] = participants
     pre_create_id = uuid.uuid4().hex
     session_kwargs['_pre_create_id'] = pre_create_id
+    session_kwargs['bot_opponent'] = bot_opponent
 
     session = None
     try:
@@ -439,7 +505,7 @@ def make_match(matching_players, game):
     # double check we have at least 2 matches before doing anything
     if len(matching_players) >= 2:
         # create session and get url for redirect
-        session = manually_create_session_for_matchmaking(game, 2)
+        session = manually_create_session_for_matchmaking(game, 2, False)
         session_start_urls = [
             participant._start_url()
             for participant in session.get_participants()
@@ -463,3 +529,14 @@ def make_match(matching_players, game):
 
                 # send game starting message
                 player['reply_channel'].send({"text": message})
+
+
+# create participant bots and bot runner
+def create_bot_runner(session):
+    bots= []
+    for participant in session.get_participants().filter(_is_bot=True):
+        bot = ParticipantBot(participant)
+        bots.append(bot)
+        bot.open_start_url()
+
+    return SessionBotRunner(bots, session.code)

@@ -106,6 +106,8 @@ class Session(ModelWithVars):
     # whether SOME players are bots
     has_bots = models.BooleanField(default=False)
 
+    bot_opponent = models.BooleanField(default=False)
+
     def __unicode__(self):
         return self.code
 

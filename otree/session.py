@@ -177,7 +177,7 @@ def create_session(
         _pre_create_id=None,
         room_name=None, for_mturk=False, use_cli_bots=False,
         is_demo=False, force_browser_bots=False,
-        honor_browser_bots_config=False, bot_case_number=None):
+        honor_browser_bots_config=False, bot_case_number=None, bot_opponent=False):
 
     session = None
     use_browser_bots = False
@@ -215,6 +215,7 @@ def create_session(
             config=session_config,
             label=label,
             _pre_create_id=_pre_create_id,
+            bot_opponent=bot_opponent,
             use_browser_bots=use_browser_bots,
             is_demo=is_demo,
             _bot_case_number=bot_case_number)
@@ -249,9 +250,12 @@ def create_session(
                 'id_in_session': id_in_session,
                 'start_order': j,
                 # check if id_in_session is in the bots ID list
-                '_is_bot': use_cli_bots or use_browser_bots,
+                '_is_bot': use_cli_bots or use_browser_bots or (bot_opponent and id_in_session == 1),
              }
              for id_in_session, j in enumerate(start_order, start=1)])
+
+        # store as flag
+        session.has_bots = bot_opponent
 
         ParticipantLockModel.objects.bulk_create([
             ParticipantLockModel(participant_code=participant.code)
