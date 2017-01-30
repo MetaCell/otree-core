@@ -29,6 +29,43 @@ from otree.room import ROOM_DICT
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
+# Connected to websocket.connect
+@enforce_ordering(slight=True)
+@channel_session
+def chat_connect(message, params):
+    # Work out game name from path (ignore slashes)
+    p = params.split(',')
+    session_id = p[0]
+    player_id_in_sesssion = p[1]
+
+    reply_channel = message.reply_channel
+
+    logger.info('path: ' + message.content['path'])
+
+    Group("chat-%s" % session_id).add(message.reply_channel)
+
+
+@enforce_ordering(slight=True)
+@channel_session
+def chat_receive(message, params):
+    # Work out game name from path (ignore slashes)
+    p = params.split(',')
+    session_id = p[0]
+    player_id_in_sesssion = p[1]
+    chatmsg = message['text']
+    payload = json.dumps({'message': chatmsg, 'sender': player_id_in_sesssion})
+    Group("chat-%s" % session_id).send({
+        "text": payload
+    })
+
+
+@enforce_ordering(slight=True)
+@channel_session
+def chat_disconnect(message):
+    Group("chat-%s" % message.channel_session['chat']).discard(message.reply_channel)
+
+
+
 def connect_wait_page(message, params):
     session_pk, page_index, model_name, model_pk = params.split(',')
     session_pk = int(session_pk)
