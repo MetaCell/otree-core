@@ -62,8 +62,10 @@ def chat_receive(message, params):
 
 @enforce_ordering(slight=True)
 @channel_session
-def chat_disconnect(message):
-    Group("chat-%s" % message.channel_session['chat']).discard(message.reply_channel)
+def chat_disconnect(message, params):
+    p = params.split(',')
+    session_id = p[0]
+    Group("chat-%s" % session_id).discard(message.reply_channel)
 
 
 
