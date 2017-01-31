@@ -804,7 +804,7 @@ class FormPageMixin(object):
                         for k, v in form.errors.items()]
                     raise AssertionError(
                         'Page "{}": Bot submission for failed form validation: {} '
-                        'Check your bot in tests.py, '
+                        'Check your bot in bots.py, '
                         'then create a new session. '
                         'Data submitted was: {}'.format(
                             self.__class__.__name__,

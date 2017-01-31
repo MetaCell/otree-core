@@ -282,7 +282,7 @@ class ParticipantBot(six.with_metaclass(abc.ABCMeta, test.Client)):
             raise AssertionError(
                 "Bot expects to be on page {}, "
                 "but current page is {}. "
-                "Check your bot in tests.py, "
+                "Check your bot in bots.py, "
                 "then create a new session.".format(expected_url, actual_url))
 
     @property
