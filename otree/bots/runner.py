@@ -32,7 +32,7 @@ class SessionBotRunner(object):
         self.all_bot_codes = {bot.participant.code for bot in bots}
 
         for bot in bots:
-            self.bots[bot.participant.id] = bot
+            self.playable[bot.participant.code] = bot
 
     def play_until_end(self):
         while True:
