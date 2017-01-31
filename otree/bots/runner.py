@@ -8,6 +8,8 @@ import mock
 import datetime
 import os
 import codecs
+import time
+from random import randint
 
 from django.db.migrations.loader import MigrationLoader
 from django.conf import settings
@@ -36,6 +38,10 @@ class SessionBotRunner(object):
 
     def play_until_end(self):
         while True:
+            # make the bot sleep a random number of seconds (1-5) to make it feel 'more human'
+            interval = randint(1, 5)
+            logger.info('SessionBotRunner: bot sleeping for {} seconds'.format(interval))
+            time.sleep(interval)
             # keep un-sticking everyone who's stuck
             stuck_pks = list(self.stuck.keys())
             done, num_submits_made = self.play_until_stuck(stuck_pks)
@@ -51,6 +57,8 @@ class SessionBotRunner(object):
                 self.playable[pk] = self.stuck.pop(pk)
         num_submits_made = 0
         while True:
+            # slow down this loop to save CPU on server
+            time.sleep(1)
             # round-robin algorithm
             if len(self.playable) == 0:
                 if len(self.stuck) == 0:

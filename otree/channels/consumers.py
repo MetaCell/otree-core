@@ -406,8 +406,7 @@ def ws_matchmaking_message(message, params):
         elif len(matching_players) == 1:
             # if not, dequeue user immediately and then create a session with bot_opponent
             try:
-                dequeue_player({'session': session_id,
-                                'game': message.channel_session['game'], 'reply_channel': reply_channel})
+                dequeue_player({'session': session_id, 'game': message.channel_session['game'], 'reply_channel': reply_channel})
             except:
                 # the user might have been removed because the game started
                 logger.info('User already removed from matchmaking queue')
