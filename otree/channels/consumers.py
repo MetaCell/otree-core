@@ -448,11 +448,7 @@ def ws_matchmaking_disconnect(message, params):
     # remove user from matchmaking queue in case of disconnect
     session_id = message.channel_session.session_key
     reply_channel = message.reply_channel
-    try:
-        dequeue_player({'session': session_id, 'game': message.channel_session['game'], 'reply_channel': reply_channel})
-    except:
-        # the user might have been removed because the game started
-        logger.info('User already removed from matchmaking queue')
+    dequeue_player({'session': session_id, 'game': message.channel_session['game'], 'reply_channel': reply_channel})
 
 
 def manually_create_session_for_matchmaking(game, participants, bot_opponent):
@@ -494,8 +490,11 @@ def enqueue_player(meta):
 
 #remove from matchmaking queue
 @synchronized
-def dequeue_player(meta):
-    settings.MATCH_MAKING_QUEUE.remove(meta)
+def dequeue_player(player_meta):
+    for player in settings.MATCH_MAKING_QUEUE:
+        if player['session'] == player_meta['session']:
+            settings.MATCH_MAKING_QUEUE.remove(player)
+            logger.info('Removed player from queue - ws session:' + player_meta['session'])
 
 
 # synchronized match making function - create session and pop players from queue
