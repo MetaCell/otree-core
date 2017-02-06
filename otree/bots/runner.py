@@ -38,8 +38,12 @@ class SessionBotRunner(object):
 
     def play_until_end(self):
         while True:
+            session = Session.objects.get(code=self.session_code)
+            # TODO: check if player disconnected and increment internal counter,
+            # TODO: if > 3 iterations player appears disconnected then break out of loop
+        
             # make the bot sleep a random number of seconds (1-5) to make it feel 'more human'
-            interval = randint(1, 5)
+            interval = randint(1, 15)
             logger.info('SessionBotRunner: bot sleeping for {} seconds'.format(interval))
             time.sleep(interval)
             # keep un-sticking everyone who's stuck

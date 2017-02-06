@@ -110,7 +110,7 @@ def disconnect_wait_page(message, params):
 
 
 def connect_auto_advance(message, params):
-    participant_code, page_index = params.split(',')
+    participant_code, page_index, session_code = params.split(',')
     page_index = int(page_index)
 
     group = Group('auto-advance-{}'.format(participant_code))
@@ -133,7 +133,7 @@ def connect_auto_advance(message, params):
 
 
 def disconnect_auto_advance(message, params):
-    participant_code, page_index = params.split(',')
+    participant_code, page_index, session_code = params.split(',')
 
     group = Group('auto-advance-{}'.format(participant_code))
     group.discard(message.reply_channel)

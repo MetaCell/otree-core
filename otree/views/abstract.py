@@ -836,7 +836,7 @@ class FormPageMixin(object):
         in template
 
         '''
-        params = ','.join([self.participant.code, str(self._index_in_pages)])
+        params = ','.join([self.participant.code, str(self._index_in_pages), self.session.code])
         return '/auto_advance/{}/'.format(params)
 
     def redirect_url(self):
