@@ -109,6 +109,9 @@ class Session(ModelWithVars):
     # flag that indicates it's human vs bot scenario
     bot_opponent = models.BooleanField(default=False)
 
+    # a flag to keep track of disconnections
+    human_participant_disconnected = models.BooleanField(default=False)
+
     def __unicode__(self):
         return self.code
 

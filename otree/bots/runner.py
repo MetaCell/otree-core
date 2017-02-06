@@ -32,6 +32,7 @@ class SessionBotRunner(object):
         self.playable = OrderedDict()
         self.bots = OrderedDict()
         self.all_bot_codes = {bot.participant.code for bot in bots}
+        self.disconnect_checks_counter = 0
 
         for bot in bots:
             self.playable[bot.participant.code] = bot
@@ -39,9 +40,14 @@ class SessionBotRunner(object):
     def play_until_end(self):
         while True:
             session = Session.objects.get(code=self.session_code)
-            # TODO: check if player disconnected and increment internal counter,
-            # TODO: if > 3 iterations player appears disconnected then break out of loop
-        
+            # check if player disconnected and increment internal counter,
+            if session.human_participant_disconnected:
+                self.disconnect_checks_counter += 1
+                # if > 3 iterations player appears disconnected then break out of loop
+                if self.disconnect_checks_counter > 3:
+                    logger.info('SessionBotRunner: Bots done, particpant appears to have disconnected')
+                    return
+
             # make the bot sleep a random number of seconds (1-5) to make it feel 'more human'
             interval = randint(1, 15)
             logger.info('SessionBotRunner: bot sleeping for {} seconds'.format(interval))
