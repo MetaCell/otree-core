@@ -48,7 +48,6 @@ def chat_connect(message, params):
 @enforce_ordering(slight=True)
 @channel_session
 def chat_receive(message, params):
-    # Work out game name from path (ignore slashes)
     p = params.split(',')
     session_id = p[0]
     player_id_in_sesssion = p[1]
@@ -57,6 +56,19 @@ def chat_receive(message, params):
     Group("chat-%s" % session_id).send({
         "text": payload
     })
+
+    # check if bot opponent and if we have 1 bot_participant as expected
+    session = Session.objects.get(id=session_id)
+    if session.bot_opponent and len(session.bot_participants) == 1:
+        # get bot participant / player bot (there can only be one)
+        bot_player = session.bot_participants[0].player_bots[0]
+        # send message to player bot and get response
+        responseMsg = bot_player.on_message(chatmsg)
+        # broadcast response to the same group
+        responsePayload = json.dumps({'message': responseMsg, 'sender': 'bot_player'})
+        Group("chat-%s" % session_id).send({
+            "text": responsePayload
+        })
 
 
 @enforce_ordering(slight=True)
@@ -547,5 +559,8 @@ def create_bot_runner(session):
         bot = ParticipantBot(participant)
         bots.append(bot)
         bot.open_start_url()
+        # add bot participant to session
+        session.bot_participants.append(bot)
+        session.save()
 
     return SessionBotRunner(bots, session.code)

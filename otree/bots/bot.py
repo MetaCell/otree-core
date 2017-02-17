@@ -352,6 +352,9 @@ class PlayerBot(object):
     def play_round(self):
         pass
 
+    def on_message(self, message):
+        pass
+
     @property
     def player(self):
         return refresh_from_db(self._cached_player)
