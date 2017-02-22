@@ -78,8 +78,8 @@ def chat_disconnect(message, params):
     session_id = p[0]
     # unregister reply channel forom session group
     Group("chat-%s" % session_id).discard(message.reply_channel)
-    # stop tracking session bot
-    remove_session_bot(session_id)
+    # remove session chatbot from global map
+    remove_session_bot(int(session_id))
 
 
 def connect_wait_page(message, params):
@@ -462,7 +462,7 @@ def ws_matchmaking_message(message, params):
             player['reply_channel'].send({"text": message_back})
 
             # create bot runner
-            bot_runner = create_bot_runner(session)
+            bot_runner = create_bot_runner(session, game)
             # spawn thread and call play_until_end on bot
             thread = Thread(target=bot_runner_play, kwargs={'bot_runner': bot_runner})
             thread.start()
@@ -533,7 +533,7 @@ def dequeue_player(player_meta):
 @synchronized
 def remove_session_bot(session_id):
     if session_id in settings.SESSION_BOTS_MAP:
-        del dict[session_id]
+        del settings.SESSION_BOTS_MAP[session_id]
 
 
 # synchronized match making function - create session and pop players from queue
@@ -569,13 +569,14 @@ def make_match(matching_players, game):
 
 
 # create participant bots and bot runner
-def create_bot_runner(session):
+def create_bot_runner(session, game):
     bots= []
     for participant in session.get_participants().filter(_is_bot=True):
         bot = ParticipantBot(participant)
         bots.append(bot)
         bot.open_start_url()
-        # track bot participant in session bots map
-        add_session_bot(session.id, bot)
+        # track bot participant in session bots map for chat
+        if game.lower() == 'chat':
+            add_session_bot(session.id, bot)
 
     return SessionBotRunner(bots, session.code)
