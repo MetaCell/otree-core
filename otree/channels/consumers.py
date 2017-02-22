@@ -59,11 +59,11 @@ def chat_receive(message, params):
 
     # check if bot opponent and if we have 1 bot_participant as expected
     session = Session.objects.get(id=session_id)
-    if session.bot_opponent and len(session.bot_participants) == 1:
+    if session.bot_opponent and int(session_id) in settings.SESSION_BOTS_MAP:
         # get bot participant / player bot (there can only be one)
-        bot_player = session.bot_participants[0].player_bots[0]
+        player_bot = settings.SESSION_BOTS_MAP[int(session_id)].player_bots[0]
         # send message to player bot and get response
-        responseMsg = bot_player.on_message(chatmsg)
+        responseMsg = player_bot.on_message(chatmsg)
         # broadcast response to the same group
         responsePayload = json.dumps({'message': responseMsg, 'sender': 'bot_player'})
         Group("chat-%s" % session_id).send({
@@ -76,7 +76,10 @@ def chat_receive(message, params):
 def chat_disconnect(message, params):
     p = params.split(',')
     session_id = p[0]
+    # unregister reply channel forom session group
     Group("chat-%s" % session_id).discard(message.reply_channel)
+    # stop tracking session bot
+    remove_session_bot(session_id)
 
 
 def connect_wait_page(message, params):
@@ -511,6 +514,12 @@ def enqueue_player(meta):
     settings.MATCH_MAKING_QUEUE.append(meta)
 
 
+# add to session bots map
+@synchronized
+def add_session_bot(session_id, bot):
+    settings.SESSION_BOTS_MAP[session_id] = bot
+
+
 #remove from matchmaking queue
 @synchronized
 def dequeue_player(player_meta):
@@ -518,6 +527,13 @@ def dequeue_player(player_meta):
         if player['session'] == player_meta['session']:
             settings.MATCH_MAKING_QUEUE.remove(player)
             logger.info('Removed player from queue - ws session:' + player_meta['session'])
+
+
+# remove entry from session bots map queue
+@synchronized
+def remove_session_bot(session_id):
+    if session_id in settings.SESSION_BOTS_MAP:
+        del dict[session_id]
 
 
 # synchronized match making function - create session and pop players from queue
@@ -559,8 +575,7 @@ def create_bot_runner(session):
         bot = ParticipantBot(participant)
         bots.append(bot)
         bot.open_start_url()
-        # add bot participant to session
-        session.bot_participants.append(bot)
-        session.save()
+        # track bot participant in session bots map
+        add_session_bot(session.id, bot)
 
     return SessionBotRunner(bots, session.code)
