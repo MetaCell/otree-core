@@ -246,6 +246,7 @@ class FormPageOrInGameWaitPageMixin(OTreeMixin):
             'session': self.session,
             'participant': self.participant,
             'Constants': self._models_module.Constants,
+            'CLINICAL': settings.CLINICAL
         })
         vars_for_template = self.resolve_vars_for_template()
         context.update(vars_for_template)
@@ -1033,7 +1034,8 @@ class AdminSessionPageMixin(GetFloppyFormClassMixin):
         context = super(AdminSessionPageMixin, self).get_context_data(**kwargs)
         context.update({
             'session': self.session,
-            'is_debug': settings.DEBUG})
+            'is_debug': settings.DEBUG,
+            'CLINICAL': settings.CLINICAL})
         return context
 
     def get_template_names(self):
