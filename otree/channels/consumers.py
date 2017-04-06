@@ -378,6 +378,9 @@ def disconnect_browser_bot(message):
 def ws_matchmaking_connect(message, params):
     # Work out game name from path (ignore slashes)
     game = params.split(',')[0]
+
+    # TODO grab platform params (mturk/prolific) and options
+
     session_id = message.channel_session.session_key
     reply_channel = message.reply_channel
 
@@ -455,7 +458,7 @@ def ws_matchmaking_message(message, params):
             message_back = json.dumps({
                 'status': 'SESSION_CREATED',
                 'message': 'Opponent found! Your game is about to start',
-                # user url is always the one with idx == 1
+                # in case of bots user url is always the one with idx == 1
                 'url': session_start_urls[1]
             })
             # send game starting message that will cause redirection

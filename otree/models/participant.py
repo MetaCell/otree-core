@@ -119,6 +119,8 @@ class Participant(ModelWithVars):
 
     _is_bot = models.BooleanField(default=False)
 
+    # TODO: add fields for platform, worker_id, options (such as url redirect)
+
     def player_lookup(self):
         # this is the most reliable way to get the app name,
         # because of WaitUntilAssigned...

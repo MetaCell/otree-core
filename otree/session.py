@@ -244,6 +244,7 @@ def create_session(
         if session_config.get('random_start_order'):
             random.shuffle(start_order)
 
+        # TODO: save additional participant parameters for platform, worker id and options
         participants = bulk_create(
             Participant,
             [{
