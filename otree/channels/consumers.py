@@ -377,9 +377,25 @@ def disconnect_browser_bot(message):
 @channel_session
 def ws_matchmaking_connect(message, params):
     # Work out game name from path (ignore slashes)
-    game = params.split(',')[0]
-
-    # TODO grab platform params (mturk/prolific) and options
+    paramsList = params.split(',')
+    # we always have at least game param
+    game = paramsList[0]
+    # try for optional params for external platform info
+    platform = None
+    worker_id = None
+    completion_url = None
+    try:
+        platform = paramsList[1]
+    except IndexError:
+        platform = None
+    try:
+        worker_id = paramsList[2]
+    except IndexError:
+        worker_id = None
+    try:
+        completion_url = paramsList[3]
+    except IndexError:
+        completion_url = None
 
     session_id = message.channel_session.session_key
     reply_channel = message.reply_channel
@@ -387,11 +403,20 @@ def ws_matchmaking_connect(message, params):
     # log name of game
     logger.info('path: ' + message.content['path'])
     logger.info('game name: ' + game)
+    if platform is not None:
+        # some extra logging for external platform
+        logger.info('external platform: ' + platform)
+        logger.info('worker-id: ' + worker_id)
 
     # Save game in session and add us to the group
     message.channel_session['game'] = game
 
-    enqueue_player({'session': session_id, 'game': game, 'reply_channel': reply_channel})
+    enqueue_player({'session': session_id,
+                    'game': game,
+                    'reply_channel': reply_channel,
+                    'platform': platform,
+                    'worker_id': worker_id,
+                    'completion_url': completion_url})
 
     message = json.dumps({'status': 'QUEUE_JOINED', 'message': 'You have joined the queue for ' + game})
     reply_channel.send({'text': message})
