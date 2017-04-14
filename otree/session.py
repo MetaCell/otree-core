@@ -179,6 +179,7 @@ def create_session(
         is_demo=False, force_browser_bots=False,
         honor_browser_bots_config=False, bot_case_number=None, bot_opponent=False):
 
+    # TODO: add kwargs for participant additional details (platform, worker_id, completion_url)
     session = None
     use_browser_bots = False
     participants = []

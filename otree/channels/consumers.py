@@ -464,6 +464,7 @@ def ws_matchmaking_message(message, params):
                 logger.info('User already removed from matchmaking queue')
 
             # create a session with bot_opponent
+            # TODO: pass participant details (platform, worker_id, completion_url)
             session = manually_create_session_for_matchmaking(game, 2, True)
             session_start_urls = [
                 participant._start_url()
@@ -509,6 +510,7 @@ def manually_create_session_for_matchmaking(game, participants, bot_opponent):
     pre_create_id = uuid.uuid4().hex
     session_kwargs['_pre_create_id'] = pre_create_id
     session_kwargs['bot_opponent'] = bot_opponent
+    # TODO: add participants details (platform, worker_id, completion_url) to session_kwargs
 
     session = None
     try:
@@ -567,6 +569,7 @@ def make_match(matching_players, game):
     # double check we have at least 2 matches before doing anything
     if len(matching_players) >= 2:
         # create session and get url for redirect
+        # TODO: pass participants details (platform, worker_id, completion_url)
         session = manually_create_session_for_matchmaking(game, 2, False)
         session_start_urls = [
             participant._start_url()
@@ -578,6 +581,8 @@ def make_match(matching_players, game):
         logger.info('P1 URL: ' + session_start_urls[0])
         logger.info('P2 URL: ' + session_start_urls[1])
 
+        # TODO: make sure that the correct url is sent to the correct user
+        # TODO: the application will behave slightly differently (at the end) based on parameters
         for indx, player in enumerate(matching_players):
             if indx < 2:
                 # take first 2 matching players out of queue
