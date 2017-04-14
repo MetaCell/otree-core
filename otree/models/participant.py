@@ -122,6 +122,18 @@ class Participant(ModelWithVars):
     _worker_id = models.TextField(default='')
     _completion_url = models.TextField(default='')
 
+    @property
+    def external_platform(self):
+        return self._external_platform
+
+    @property
+    def worker_id(self):
+        return self._worker_id
+
+    @property
+    def completion_url(self):
+        return self._completion_url
+
     def player_lookup(self):
         # this is the most reliable way to get the app name,
         # because of WaitUntilAssigned...

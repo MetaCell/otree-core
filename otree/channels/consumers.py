@@ -511,7 +511,6 @@ def manually_create_session_for_matchmaking(game, num_participants, bot_opponent
     session_kwargs['_pre_create_id'] = pre_create_id
     session_kwargs['bot_opponent'] = bot_opponent
     session_kwargs['participant_info'] = participant_info
-    # TODO: add participants details (platform, worker_id, completion_url) to session_kwargs
 
     session = None
     try:
@@ -576,32 +575,39 @@ def make_match(matching_players, game):
 
         # create session + pass participants details (platform, worker_id, completion_url)
         session = manually_create_session_for_matchmaking(game, 2, False, participant_info)
-        # get url for redirect
-        session_start_urls = [
-            participant._start_url()
-            for participant in session.get_participants()
-        ]
 
         # log some stuff
-        logger.info('Session create for: ' + game)
-        logger.info('P1 URL: ' + session_start_urls[0])
-        logger.info('P2 URL: ' + session_start_urls[1])
+        logger.info('Session created for: ' + game)
 
-        # TODO: make sure that the correct url is sent to the correct user
-        # TODO: the application will behave slightly differently (at the end) based on parameters
+        # make sure that the correct url (matching platform, worker_id if any) is sent to the correct user
+        participant_indexes_used = []
         for indx, player in enumerate(matching_players):
             if indx < 2:
+                session_start_url = ''
+                # look for participant from session that matches the queued up player's attributes
+                for i, participant in enumerate(session.get_participants()):
+                    if (player['platform'] == participant.external_platform and
+                            player['worker_id'] == participant.worker_id and
+                            not (i in participant_indexes_used)):
+                        # match
+                        participant_indexes_used.append(i)
+                        session_start_url = participant._start_url()
+                        break
+
                 # take first 2 matching players out of queue
                 settings.MATCH_MAKING_QUEUE.remove(player)
 
                 message = json.dumps({
                     'status': 'SESSION_CREATED',
                     'message': 'Opponent found! Your game is about to start',
-                    'url': session_start_urls[indx]
+                    'url': session_start_url
                 })
 
                 # send game starting message
                 player['reply_channel'].send({"text": message})
+
+                # some logging
+                logger.info('P' + str(indx) + ' URL: ' + session_start_url)
 
 
 # create participant bots and bot runner
