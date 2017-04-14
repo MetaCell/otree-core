@@ -411,9 +411,9 @@ def ws_matchmaking_connect(message, params):
     enqueue_player({'session': session_id,
                     'game': game,
                     'reply_channel': reply_channel,
-                    'platform': platform,
-                    'worker_id': worker_id,
-                    'completion_url': completion_url})
+                    'platform': platform if platform is not None else '',
+                    'worker_id': worker_id if worker_id is not None else '',
+                    'completion_url': completion_url if completion_url is not None else ''})
 
     message = json.dumps({'status': 'QUEUE_JOINED', 'message': 'You have joined the queue for ' + game})
     reply_channel.send({'text': message})
@@ -463,9 +463,9 @@ def ws_matchmaking_message(message, params):
                 # the user might have been removed because the game started
                 logger.info('User already removed from matchmaking queue')
 
-            # create a session with bot_opponent
-            # TODO: pass participant details (platform, worker_id, completion_url)
-            session = manually_create_session_for_matchmaking(game, 2, True)
+            # create a session with bot_opponent + pass participant info (platform, worker_id, completion_url)
+            session = manually_create_session_for_matchmaking(game, 2, True, matching_players)
+            # grab start urls
             session_start_urls = [
                 participant._start_url()
                 for participant in session.get_participants()
@@ -503,13 +503,14 @@ def ws_matchmaking_disconnect(message, params):
     dequeue_player({'session': session_id, 'game': message.channel_session['game'], 'reply_channel': reply_channel})
 
 
-def manually_create_session_for_matchmaking(game, participants, bot_opponent):
+def manually_create_session_for_matchmaking(game, num_participants, bot_opponent, participant_info):
     session_kwargs = {}
     session_kwargs['session_config_name'] = game
-    session_kwargs['num_participants'] = participants
+    session_kwargs['num_participants'] = num_participants
     pre_create_id = uuid.uuid4().hex
     session_kwargs['_pre_create_id'] = pre_create_id
     session_kwargs['bot_opponent'] = bot_opponent
+    session_kwargs['participant_info'] = participant_info
     # TODO: add participants details (platform, worker_id, completion_url) to session_kwargs
 
     session = None
@@ -568,9 +569,14 @@ def remove_session_bot(session_id):
 def make_match(matching_players, game):
     # double check we have at least 2 matches before doing anything
     if len(matching_players) >= 2:
-        # create session and get url for redirect
-        # TODO: pass participants details (platform, worker_id, completion_url)
-        session = manually_create_session_for_matchmaking(game, 2, False)
+        # grab first 2 matching players info
+        participant_info = []
+        participant_info.append(matching_players[0])
+        participant_info.append(matching_players[1])
+
+        # create session + pass participants details (platform, worker_id, completion_url)
+        session = manually_create_session_for_matchmaking(game, 2, False, participant_info)
+        # get url for redirect
         session_start_urls = [
             participant._start_url()
             for participant in session.get_participants()
