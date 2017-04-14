@@ -381,9 +381,6 @@ def ws_matchmaking_connect(message, params):
     # we always have at least game param
     game = paramsList[0]
     # try for optional params for external platform info
-    platform = None
-    worker_id = None
-    completion_url = None
     try:
         platform = paramsList[1]
     except IndexError:
