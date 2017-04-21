@@ -32,6 +32,42 @@ logger = logging.getLogger(__name__)
 # Connected to websocket.connect
 @enforce_ordering(slight=True)
 @channel_session
+def question_connect(message, params):
+    # Work out game name from path (ignore slashes)
+    p = params.split(',')
+    session_id = p[0]
+    player_id_in_sesssion = p[1]
+    reply_channel = message.reply_channel
+
+    logger.info('path: ' + message.content['path'])
+
+
+
+@enforce_ordering(slight=True)
+@channel_session
+def question_receive(message, params):
+    p = params.split(',')
+    session_id = p[0]
+    player_id_in_sesssion = p[1]
+    payload = json.loads(message.content['text'])
+    round = payload['round']
+    answer = payload['answer']
+    questionId = payload['questionId']
+    logger.info('question id='+questionId+' round='+round+' answer='+answer)
+
+
+@enforce_ordering(slight=True)
+@channel_session
+def question_disconnect(message, params):
+    p = params.split(',')
+    session_id = p[0]
+
+
+
+
+# Connected to websocket.connect
+@enforce_ordering(slight=True)
+@channel_session
 def chat_connect(message, params):
     # Work out game name from path (ignore slashes)
     p = params.split(',')

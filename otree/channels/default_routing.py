@@ -7,6 +7,14 @@ from otree.channels import consumers
 
 
 channel_routing = [
+    # questions
+    route('websocket.connect', consumers.question_connect,
+          path=r'^/question/(?P<params>[\w,]+)/$'),
+    route('websocket.disconnect', consumers.question_disconnect,
+          path=r'^/question/(?P<params>[\w,]+)/$'),
+    route('websocket.receive', consumers.question_receive,
+          path=r'^/question/(?P<params>[\w,]+)/$'),
+    # end_chat
     #chat
     route('websocket.connect', consumers.chat_connect,
           path=r'^/chat/(?P<params>[\w,]+)/$'),
