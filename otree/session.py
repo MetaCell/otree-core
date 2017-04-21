@@ -177,7 +177,8 @@ def create_session(
         _pre_create_id=None,
         room_name=None, for_mturk=False, use_cli_bots=False,
         is_demo=False, force_browser_bots=False,
-        honor_browser_bots_config=False, bot_case_number=None, bot_opponent=False):
+        honor_browser_bots_config=False, bot_case_number=None,
+        bot_opponent=False, participant_info = None):
 
     session = None
     use_browser_bots = False
@@ -244,15 +245,33 @@ def create_session(
         if session_config.get('random_start_order'):
             random.shuffle(start_order)
 
-        participants = bulk_create(
-            Participant,
-            [{
-                'id_in_session': id_in_session,
-                'start_order': j,
-                # check if id_in_session is in the bots ID list
-                '_is_bot': use_cli_bots or use_browser_bots or (bot_opponent and id_in_session == 1),
-             }
-             for id_in_session, j in enumerate(start_order, start=1)])
+        for id_in_session, j in enumerate(start_order, start=1):
+            # check if we need to assign external platform params
+            if participant_info is not None and not (bot_opponent and id_in_session == 1):
+                # only one entry in participant_info if bot_opponent
+                index = 0 if bot_opponent else (id_in_session - 1)
+                external_platform = participant_info[index]['platform']
+                worker_id = participant_info[index]['worker_id']
+                completion_url = participant_info[index]['completion_url']
+            else:
+                external_platform = ''
+                worker_id = ''
+                completion_url = ''
+
+            # create object
+            participant = Participant.objects.create(
+                    session_id=session.id,
+                    id_in_session=id_in_session,
+                    start_order=j,
+                    # check if id_in_session is in the bots ID list
+                    _is_bot=use_cli_bots or use_browser_bots or (bot_opponent and id_in_session == 1),
+                    # save additional participant parameters for platform, worker id and options
+                    _external_platform=external_platform,
+                    _worker_id=worker_id,
+                    _completion_url=completion_url
+            )
+
+            participants.append(participant)
 
         # store as flag
         session.has_bots = bot_opponent

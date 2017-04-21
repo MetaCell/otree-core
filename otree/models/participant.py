@@ -101,10 +101,8 @@ class Participant(ModelWithVars):
 
     # these are both for the admin
     # In the changelist, simply call these "page" and "app"
-    _current_page_name = models.CharField(max_length=200, null=True,
-                                          verbose_name='page')
-    _current_app_name = models.CharField(max_length=200, null=True,
-                                         verbose_name='app')
+    _current_page_name = models.CharField(max_length=200, null=True,verbose_name='page')
+    _current_app_name = models.CharField(max_length=200, null=True,verbose_name='app')
 
     # only to be displayed in the admin participants changelist
     _round_number = models.PositiveIntegerField(
@@ -118,6 +116,23 @@ class Participant(ModelWithVars):
     _browser_bot_finished = models.BooleanField(default=False)
 
     _is_bot = models.BooleanField(default=False)
+
+    # additional fields for external platform, worker_id, completion_url
+    _external_platform = models.TextField(default='')
+    _worker_id = models.TextField(default='')
+    _completion_url = models.TextField(default='')
+
+    @property
+    def external_platform(self):
+        return self._external_platform
+
+    @property
+    def worker_id(self):
+        return self._worker_id
+
+    @property
+    def completion_url(self):
+        return self._completion_url
 
     def player_lookup(self):
         # this is the most reliable way to get the app name,
