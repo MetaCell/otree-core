@@ -527,18 +527,25 @@ def ws_matchmaking_message(message, params):
                 for participant in session.get_participants()
             ]
 
+            playerIndex = 0;
+            for participant in session.get_participants():
+                if not participant._is_bot:
+                    break
+                playerIndex += 1
+
+
             # setup user
             # log some stuff
             logger.info('Session (with bot opponent) created for: ' + game)
-            logger.info('P1 URL (bot): ' + session_start_urls[0])
-            logger.info('P2 URL: ' + session_start_urls[1])
+            logger.info('P1 URL (bot): ' + session_start_urls[1 if playerIndex==0 else 0])
+            logger.info('P2 URL: ' + session_start_urls[playerIndex])
 
             player = matching_players[0]
             message_back = json.dumps({
                 'status': 'SESSION_CREATED',
                 'message': 'Opponent found! Your game is about to start',
                 # in case of bots user url is always the one with idx == 1
-                'url': session_start_urls[1]
+                'url': session_start_urls[playerIndex]
             })
             # send game starting message that will cause redirection
             player['reply_channel'].send({"text": message_back})

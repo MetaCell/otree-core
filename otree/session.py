@@ -245,14 +245,15 @@ def create_session(
         if session_config.get('random_start_order'):
             random.shuffle(start_order)
 
+        bot_id = start_order[0] + 1
+
         for id_in_session, j in enumerate(start_order, start=1):
             # check if we need to assign external platform params
-            if participant_info is not None and not (bot_opponent and id_in_session == 1):
+            if participant_info is not None and not id_in_session == bot_id:
                 # only one entry in participant_info if bot_opponent
-                index = 0 if bot_opponent else (id_in_session - 1)
-                external_platform = participant_info[index]['platform']
-                worker_id = participant_info[index]['worker_id']
-                completion_url = participant_info[index]['completion_url']
+                external_platform = participant_info[0]['platform']
+                worker_id = participant_info[0]['worker_id']
+                completion_url = participant_info[0]['completion_url']
             else:
                 external_platform = ''
                 worker_id = ''
@@ -264,7 +265,7 @@ def create_session(
                     id_in_session=id_in_session,
                     start_order=j,
                     # check if id_in_session is in the bots ID list
-                    _is_bot=use_cli_bots or use_browser_bots or (bot_opponent and id_in_session == 1),
+                    _is_bot=use_cli_bots or use_browser_bots or (bot_opponent and id_in_session == bot_id),
                     # save additional participant parameters for platform, worker id and options
                     _external_platform=external_platform,
                     _worker_id=worker_id,
