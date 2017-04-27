@@ -28,6 +28,8 @@ class Participant(ModelWithVars):
 
     vars = models._JSONField(default=dict)
 
+    customQuestions = models._JSONField(default={[]})
+
     label = models.CharField(
         max_length=50, null=True, doc=(
             "Label assigned by the experimenter. Can be assigned by passing a "

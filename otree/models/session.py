@@ -87,8 +87,7 @@ class Session(ModelWithVars):
 
     comment = models.TextField(blank=True)
 
-    _anonymous_code = models.CharField(
-        default=random_chars_10, max_length=10, null=False, db_index=True)
+    _anonymous_code = models.CharField(default=random_chars_10, max_length=10, null=False, db_index=True)
 
     _pre_create_id = models.CharField(max_length=300, db_index=True, null=True)
 

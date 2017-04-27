@@ -10,11 +10,9 @@ import traceback
 import uuid
 from datetime import timedelta
 from threading import Thread
-
 from django.conf import settings
 from channels import Group
 from channels.sessions import channel_session, enforce_ordering
-
 
 import otree.session
 from otree.models import Participant, Session
@@ -29,6 +27,7 @@ from otree.bots.runner import SessionBotRunner
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
+
 # Connected to websocket.connect
 @enforce_ordering(slight=True)
 @channel_session
@@ -42,18 +41,39 @@ def question_connect(message, params):
     logger.info('path: ' + message.content['path'])
 
 
-
 @enforce_ordering(slight=True)
 @channel_session
 def question_receive(message, params):
     p = params.split(',')
     session_id = p[0]
     player_id_in_sesssion = p[1]
+    participant_id = p[2]
     payload = json.loads(message.content['text'])
     round = payload['round']
     answer = payload['answer']
     questionId = payload['questionId']
     logger.info('question id='+questionId+' round='+round+' answer='+answer)
+
+    # store in session
+    session = Session.objects.get(id=session_id)
+    answer = {
+        'player_id_in_sesssion': player_id_in_sesssion,
+        'session_id': session_id,
+        'question_id': questionId,
+        'round': round,
+        'answer': answer
+    }
+    # grab participant
+    participant = None
+    for idx, p in session.get_participants():
+        if(idx == participant_id):
+            participant = p
+
+    if participant is not None:
+        p.customQuestions.append(answer)
+
+    # persist changes
+    session.save()
 
 
 @enforce_ordering(slight=True)
@@ -61,8 +81,6 @@ def question_receive(message, params):
 def question_disconnect(message, params):
     p = params.split(',')
     session_id = p[0]
-
-
 
 
 # Connected to websocket.connect
