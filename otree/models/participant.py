@@ -28,7 +28,7 @@ class Participant(ModelWithVars):
 
     vars = models._JSONField(default=dict)
 
-    customQuestions = models._JSONField(default={})
+    customQuestions = models.TextField(default="[]")
 
     label = models.CharField(
         max_length=50, null=True, doc=(
