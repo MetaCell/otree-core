@@ -47,7 +47,7 @@ def question_receive(message, params):
     p = params.split(',')
     session_id = p[0]
     player_id_in_sesssion = p[1]
-    participant_id_in_session = p[2]
+    participant_code = p[2]
     payload = json.loads(message.content['text'])
     round = payload['round']
     answer = payload['answer']
@@ -57,8 +57,7 @@ def question_receive(message, params):
     # store in session
     session = Session.objects.get(id=session_id)
     answer = {
-        'player_id_in_sesssion': player_id_in_sesssion,
-        'participant_id_in_session': participant_id_in_session,
+        'participant_code': participant_code,
         'session_id': session_id,
         'question_id': questionId,
         'round': round,
@@ -67,17 +66,16 @@ def question_receive(message, params):
     # grab the correct participant
     participant = None
     for i, p in enumerate(session.get_participants()):
-        if(p.id_in_session == int(participant_id_in_session)):
+        if(p.code == participant_code):
             participant = p
     # store custom question result at the participant level
     if participant is not None:
         jsonDec = json.decoder.JSONDecoder()
-        questions = jsonDec.decode(p.customQuestions)
+        questions = jsonDec.decode(participant.customQuestions)
         questions.append(answer)
-        p.customQuestions = json.dumps(questions)
-        p.save()
+        participant.customQuestions = json.dumps(questions)
         # persist changes at session level (propagates to children participants)
-        session.save()
+        participant.save()
 
 
 @enforce_ordering(slight=True)
