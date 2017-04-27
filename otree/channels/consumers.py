@@ -425,10 +425,6 @@ def ws_matchmaking_connect(message, params):
         worker_id = paramsList[2]
     except IndexError:
         worker_id = None
-    try:
-        completion_url = paramsList[3]
-    except IndexError:
-        completion_url = None
 
     session_id = message.channel_session.session_key
     reply_channel = message.reply_channel
@@ -449,7 +445,7 @@ def ws_matchmaking_connect(message, params):
                     'reply_channel': reply_channel,
                     'platform': platform if platform is not None else '',
                     'worker_id': worker_id if worker_id is not None else '',
-                    'completion_url': completion_url if completion_url is not None else ''})
+                    'completion_url': ''})
 
     message = json.dumps({'status': 'QUEUE_JOINED', 'message': 'You have joined the queue for ' + game})
     reply_channel.send({'text': message})
@@ -472,11 +468,17 @@ def bot_runner_play(bot_runner=None):
 @enforce_ordering(slight=True)
 @channel_session
 def ws_matchmaking_message(message, params):
-    # only do something if status is polling
     payload = json.loads(message['text'])
+    session_id = message.channel_session.session_key
+
+    if payload['status'] == 'SET_COMPLETION_URL':
+        # add completion url to player info
+        for queued_player in settings.MATCH_MAKING_QUEUE:
+            if queued_player['session'] == session_id:
+                queued_player['completion_url'] = payload['message']
+
     if payload['status'] == 'POLLING':
         # we use this exclusively for polling and starting bot opponent sessions
-        session_id = message.channel_session.session_key
         reply_channel = message.reply_channel
         # Work out game name from path (ignore slashes)
         game = params.split(',')[0]
