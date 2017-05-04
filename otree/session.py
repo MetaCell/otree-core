@@ -178,7 +178,7 @@ def create_session(
         room_name=None, for_mturk=False, use_cli_bots=False,
         is_demo=False, force_browser_bots=False,
         honor_browser_bots_config=False, bot_case_number=None,
-        bot_opponent=False, participant_info = None):
+        bot_opponent=False, participant_info=None):
 
     session = None
     use_browser_bots = False
@@ -246,14 +246,14 @@ def create_session(
             random.shuffle(start_order)
 
         bot_id = start_order[0] + 1
-
         for id_in_session, j in enumerate(start_order, start=1):
             # check if we need to assign external platform params
-            if participant_info is not None and not id_in_session == bot_id:
+            if participant_info is not None and not (bot_opponent and id_in_session == bot_id):
+                index = 0 if bot_opponent else (id_in_session - 1)
                 # only one entry in participant_info if bot_opponent
-                external_platform = participant_info[0]['platform']
-                worker_id = participant_info[0]['worker_id']
-                completion_url = participant_info[0]['completion_url']
+                external_platform = participant_info[index]['platform']
+                worker_id = participant_info[index]['worker_id']
+                completion_url = participant_info[index]['completion_url']
             else:
                 external_platform = ''
                 worker_id = ''

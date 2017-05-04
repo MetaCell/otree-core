@@ -8,6 +8,7 @@ import django.db
 import django.utils.timezone
 import traceback
 import uuid
+import random
 from datetime import timedelta
 from threading import Thread
 from django.conf import settings
@@ -470,15 +471,6 @@ def ws_matchmaking_connect(message, params):
     message = json.dumps({'status': 'QUEUE_JOINED', 'message': 'You have joined the queue for ' + game})
     reply_channel.send({'text': message})
 
-    # whenever a user connects, check if we have 2 users to start a given game
-    matching_players = []
-    for player in settings.MATCH_MAKING_QUEUE:
-        if player['game'] == game:
-            matching_players.append(player)
-
-    if len(matching_players) >= 2:
-        make_match(matching_players, game)
-
 
 # threaded function to call play on bot_runner
 def bot_runner_play(bot_runner=None):
@@ -503,33 +495,43 @@ def ws_matchmaking_message(message, params):
         # Work out game name from path (ignore slashes)
         game = params.split(',')[0]
 
-        # check if we have another user other than us that wants to play the same game
-        matching_players = []
-        for player in settings.MATCH_MAKING_QUEUE:
-            if player['game'] == game:
-                matching_players.append(player)
+        # retrieve polling player
+        polling_player = None
+        for queued_player in settings.MATCH_MAKING_QUEUE:
+            if queued_player['session'] == session_id:
+                polling_player = queued_player
 
-        if len(matching_players) >= 2:
-            # if so, make match (same as connect logic)
-            # NOTE: this should never happen because match is made on connect
-            make_match(matching_players, game)
-        elif len(matching_players) == 1:
+        # check if we have another user other than us that wants to play the same game
+        next_player_in_queue = None
+        for player in settings.MATCH_MAKING_QUEUE:
+            if player['game'] == game and player['session'] != session_id:
+                next_player_in_queue = player
+                break
+
+        # chance of playing against a humanplayer, if any, should be 50%
+        chance = random.uniform(0, 1)
+        if next_player_in_queue is not None and chance > 0.5:
+            # if so, make match with human opponent
+            make_match([polling_player, next_player_in_queue], game)
+        else:
             # if not, dequeue user immediately and then create a session with bot_opponent
             try:
                 dequeue_player({'session': session_id, 'game': message.channel_session['game'], 'reply_channel': reply_channel})
             except:
                 # the user might have been removed because the game started
                 logger.info('User already removed from matchmaking queue')
+                # session has already started for this player, return
+                return
 
             # create a session with bot_opponent + pass participant info (platform, worker_id, completion_url)
-            session = manually_create_session_for_matchmaking(game, 2, True, matching_players)
+            session = manually_create_session_for_matchmaking(game, 2, True, [polling_player])
             # grab start urls
             session_start_urls = [
                 participant._start_url()
                 for participant in session.get_participants()
             ]
 
-            playerIndex = 0;
+            playerIndex = 0
             for participant in session.get_participants():
                 if not participant._is_bot:
                     break
@@ -542,7 +544,7 @@ def ws_matchmaking_message(message, params):
             logger.info('P1 URL (bot): ' + session_start_urls[1 if playerIndex==0 else 0])
             logger.info('P2 URL: ' + session_start_urls[playerIndex])
 
-            player = matching_players[0]
+            player = polling_player
             message_back = json.dumps({
                 'status': 'SESSION_CREATED',
                 'message': 'Opponent found! Your game is about to start',
@@ -637,6 +639,22 @@ def make_match(matching_players, game):
         participant_info = []
         participant_info.append(matching_players[0])
         participant_info.append(matching_players[1])
+
+        # Check if both players are still in queue, else return
+        p1_still_in_queue = False
+        p2_still_in_queue = False
+        for i, matching_player in enumerate(matching_players):
+            for player in settings.MATCH_MAKING_QUEUE:
+                if matching_player['session'] == player['session']:
+                    if i == 0:
+                        p1_still_in_queue = True
+                    elif i == 1:
+                        p2_still_in_queue = True
+
+        # check if we need to abort matchmaking
+        if not (p1_still_in_queue and p2_still_in_queue):
+            # abort make match players have been added to some other session
+            return
 
         # create session + pass participants details (platform, worker_id, completion_url)
         session = manually_create_session_for_matchmaking(game, 2, False, participant_info)
