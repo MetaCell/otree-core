@@ -45,7 +45,7 @@ class SessionBotRunner(object):
                 self.disconnect_checks_counter += 1
                 # if > 3 iterations player appears disconnected then break out of loop
                 if self.disconnect_checks_counter > 3:
-                    logger.info('SessionBotRunner: Bots done, particpant appears to have disconnected')
+                    logger.info('SessionBotRunner: Bots done, participant appears to have disconnected')
                     return
 
             # make the bot sleep a random number of seconds (1-5) to make it feel 'more human'
