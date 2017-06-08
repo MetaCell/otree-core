@@ -102,6 +102,9 @@ class Session(ModelWithVars):
 
     is_demo = models.BooleanField(default=False)
 
+    # stores randomisation status with information about session creation and matchmaking
+    randomisation_status = models.CharField(max_length=30, db_index=False, null=True)
+
     # whether SOME players are bots
     has_bots = models.BooleanField(default=False)
 

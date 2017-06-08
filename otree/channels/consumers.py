@@ -490,10 +490,13 @@ def ws_matchmaking_message(message, params):
                 queued_player['completion_url'] = payload['message']
 
     if payload['status'] == 'POLLING':
-        # we use this exclusively for polling and starting bot opponent sessions
+        # we use this exclusively for polling and starting sessions (with human participants and bots)
         reply_channel = message.reply_channel
         # Work out game name from path (ignore slashes)
         game = params.split(',')[0]
+
+        # randomization status string
+        randomisation_status = settings.RANDOMISATION_STATUS_MAP['DEFAULT_TO_BOT']
 
         # retrieve polling player
         polling_player = None
@@ -511,8 +514,9 @@ def ws_matchmaking_message(message, params):
         # chance of playing against a humanplayer, if any, should be 50%
         chance = random.uniform(0, 1)
         if next_player_in_queue is not None and chance > 0.5:
+            randomisation_status = settings.RANDOMISATION_STATUS_MAP['RANDOMISED_TO_HUMAN']
             # if so, make match with human opponent
-            make_match([polling_player, next_player_in_queue], game)
+            make_match([polling_player, next_player_in_queue], game, randomisation_status)
         else:
             # if not, dequeue user immediately and then create a session with bot_opponent
             try:
@@ -523,8 +527,11 @@ def ws_matchmaking_message(message, params):
                 # session has already started for this player, return
                 return
 
+            if next_player_in_queue is not None:
+                randomisation_status = settings.RANDOMISATION_STATUS_MAP['RANDOMISED_TO_BOT']
+
             # create a session with bot_opponent + pass participant info (platform, worker_id, completion_url)
-            session = manually_create_session_for_matchmaking(game, 2, True, [polling_player])
+            session = manually_create_session_for_matchmaking(game, 2, True, [polling_player], randomisation_status)
             # grab start urls
             session_start_urls = [
                 participant._start_url()
@@ -570,7 +577,7 @@ def ws_matchmaking_disconnect(message, params):
     dequeue_player({'session': session_id, 'game': message.channel_session['game'], 'reply_channel': reply_channel})
 
 
-def manually_create_session_for_matchmaking(game, num_participants, bot_opponent, participant_info):
+def manually_create_session_for_matchmaking(game, num_participants, bot_opponent, participant_info, random_status):
     session_kwargs = {}
     session_kwargs['session_config_name'] = game
     session_kwargs['num_participants'] = num_participants
@@ -578,6 +585,7 @@ def manually_create_session_for_matchmaking(game, num_participants, bot_opponent
     session_kwargs['_pre_create_id'] = pre_create_id
     session_kwargs['bot_opponent'] = bot_opponent
     session_kwargs['participant_info'] = participant_info
+    session_kwargs['randomisation_status'] = random_status
 
     session = None
     try:
@@ -632,7 +640,7 @@ def remove_session_bot(session_id):
 
 # synchronized match making function - create session and pop players from queue
 @synchronized
-def make_match(matching_players, game):
+def make_match(matching_players, game, randomisation):
     # double check we have at least 2 matches before doing anything
     if len(matching_players) >= 2:
         # grab first 2 matching players info
@@ -657,7 +665,7 @@ def make_match(matching_players, game):
             return
 
         # create session + pass participants details (platform, worker_id, completion_url)
-        session = manually_create_session_for_matchmaking(game, 2, False, participant_info)
+        session = manually_create_session_for_matchmaking(game, 2, False, participant_info, randomisation)
 
         # log some stuff
         logger.info('Session created for: ' + game)

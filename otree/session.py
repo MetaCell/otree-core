@@ -178,7 +178,7 @@ def create_session(
         room_name=None, for_mturk=False, use_cli_bots=False,
         is_demo=False, force_browser_bots=False,
         honor_browser_bots_config=False, bot_case_number=None,
-        bot_opponent=False, participant_info=None):
+        bot_opponent=False, participant_info=None, randomisation_status=None):
 
     session = None
     use_browser_bots = False
@@ -217,6 +217,7 @@ def create_session(
             label=label,
             _pre_create_id=_pre_create_id,
             bot_opponent=bot_opponent,
+            randomisation_status=randomisation_status,
             use_browser_bots=use_browser_bots,
             is_demo=is_demo,
             _bot_case_number=bot_case_number)
