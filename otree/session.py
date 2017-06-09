@@ -220,7 +220,8 @@ def create_session(
             randomisation_status=randomisation_status,
             use_browser_bots=use_browser_bots,
             is_demo=is_demo,
-            _bot_case_number=bot_case_number)
+            _bot_case_number=bot_case_number,
+            game=session_config_name)
 
         def bulk_create(model, descriptions):
             model.objects.bulk_create([

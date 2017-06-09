@@ -105,6 +105,9 @@ class Session(ModelWithVars):
     # stores randomisation status with information about session creation and matchmaking
     randomisation_status = models.CharField(max_length=30, db_index=False, null=True)
 
+    #the name of the game, we store it in the session so we can retrieve it from any page (e.g. TestResult)
+    game = models.CharField(max_length=30, db_index=False, null=True)
+
     # whether SOME players are bots
     has_bots = models.BooleanField(default=False)
 
