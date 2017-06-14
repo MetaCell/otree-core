@@ -14,7 +14,7 @@ channel_routing = [
           path=r'^/question/(?P<params>[\w,]+)/$'),
     route('websocket.receive', consumers.question_receive,
           path=r'^/question/(?P<params>[\w,]+)/$'),
-    # end_chat
+    # end_questions
     #chat
     route('websocket.connect', consumers.chat_connect,
           path=r'^/chat/(?P<params>[\w,]+)/$'),
@@ -23,20 +23,23 @@ channel_routing = [
     route('websocket.receive', consumers.chat_receive,
           path=r'^/chat/(?P<params>[\w,]+)/$'),
     #end_chat
+    #matchmaking
     route('websocket.connect', consumers.ws_matchmaking_connect,
           path=r'^/matchmaking/(?P<params>[\w,]+)/$'),
     route('websocket.receive', consumers.ws_matchmaking_message,
           path=r'^/matchmaking/(?P<params>[\w,]+)/$'),
     route('websocket.disconnect', consumers.ws_matchmaking_disconnect,
           path=r'^/matchmaking/(?P<params>[\w,]+)/$'),
-    route(
-        'websocket.connect', consumers.connect_wait_page,
+    #end_matchmaking
+    #disconnection
+    route('websocket.receive', consumers.disconnection_polling_message,
+          path=r'^/disconnection/(?P<params>[\w,]+)/$'),
+    #end_disconnection
+    route('websocket.connect', consumers.connect_wait_page,
         path=r'^/wait_page/(?P<params>[\w,]+)/$'),
-    route(
-        'websocket.disconnect', consumers.disconnect_wait_page,
+    route('websocket.disconnect', consumers.disconnect_wait_page,
         path=r'^/wait_page/(?P<params>[\w,]+)/$'),
-    route(
-        'websocket.connect', consumers.connect_auto_advance,
+    route('websocket.connect', consumers.connect_auto_advance,
         path=r'^/auto_advance/(?P<params>[\w,]+)/$'),
     route('websocket.disconnect', consumers.disconnect_auto_advance,
           path=r'^/auto_advance/(?P<params>[\w,]+)/$'),

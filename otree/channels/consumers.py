@@ -139,6 +139,18 @@ def chat_disconnect(message, params):
     remove_session_bot(int(session_id))
 
 
+def disconnection_polling_message(message, params):
+    participant_code, page_index, session_code = params.split(',')
+
+    # check if a player is disconnected, doesn't matter which one
+    session = Session.objects.get(code=session_code)
+    player_disconnected = False
+    if session.human_participant_disconnected:
+        player_disconnected = True
+
+    message.reply_channel.send({'text': json.dumps({'player_disconnected': player_disconnected})})
+
+
 def connect_wait_page(message, params):
     session_pk, page_index, model_name, model_pk = params.split(',')
     session_pk = int(session_pk)
