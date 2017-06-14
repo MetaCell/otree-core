@@ -140,15 +140,21 @@ def chat_disconnect(message, params):
 
 
 def disconnection_polling_message(message, params):
-    participant_code, page_index, session_code = params.split(',')
+    session_id, player_id_in_session, participant_code = params.split(',')
 
     # check if a player is disconnected, doesn't matter which one
-    session = Session.objects.get(code=session_code)
+    session = Session.objects.get(id=session_id)
     player_disconnected = False
     if session.human_participant_disconnected:
         player_disconnected = True
 
-    message.reply_channel.send({'text': json.dumps({'player_disconnected': player_disconnected})})
+    message_back = json.dumps({
+        'status': 'DISCONNECTION_STATUS',
+        'player_disconnected': player_disconnected
+    })
+
+    logger.info('disconnection_status: ' + str(player_disconnected))
+    message.reply_channel.send({'text': message_back})
 
 
 def connect_wait_page(message, params):
@@ -176,9 +182,7 @@ def connect_wait_page(message, params):
             session_id=session_pk,
             after_all_players_arrive_run=True).exists()
     if ready:
-        message.reply_channel.send(
-            {'text': json.dumps(
-                {'status': 'ready'})})
+        message.reply_channel.send({'text': json.dumps({'status': 'ready'})})
 
 
 def disconnect_wait_page(message, params):
