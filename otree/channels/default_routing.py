@@ -34,6 +34,8 @@ channel_routing = [
     #disconnection
     route('websocket.receive', consumers.disconnection_polling_message,
           path=r'^/disconnection/(?P<params>[\w,]+)/$'),
+    route('websocket.disconnect', consumers.disconnection_polling_disconnect,
+          path=r'^/disconnection/(?P<params>[\w,]+)/$'),
     #end_disconnection
     route('websocket.connect', consumers.connect_wait_page,
         path=r'^/wait_page/(?P<params>[\w,]+)/$'),

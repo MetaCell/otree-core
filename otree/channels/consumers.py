@@ -9,6 +9,7 @@ import django.utils.timezone
 import traceback
 import uuid
 import random
+import math
 from datetime import timedelta
 from threading import Thread
 from django.conf import settings
@@ -143,25 +144,40 @@ def disconnection_polling_message(message, params):
     session_id, player_id_in_session, participant_code = params.split(',')
 
     # check if a player is disconnected, doesn't matter which one
-    session = Session.objects.get(id=session_id)
-    player_disconnected = False
-    if session.human_participant_disconnected:
-        player_disconnected = True
+    try:
+        session_id = int(session_id)
+    except ValueError:
+        session_id = float('nan')
 
-    message_back = json.dumps({
-        'status': 'DISCONNECTION_STATUS',
-        'player_disconnected': player_disconnected
-    })
+    if not math.isnan(session_id):
+        session = Session.objects.get(id=session_id)
+        player_disconnected = False
+        if session.human_participant_disconnected:
+            player_disconnected = True
 
-    logger.info('disconnection_status: ' + str(player_disconnected))
-    message.reply_channel.send({'text': message_back})
+        message_back = json.dumps({
+            'status': 'DISCONNECTION_STATUS',
+            'player_disconnected': player_disconnected
+        })
 
+        logger.info('disconnection_status: ' + str(player_disconnected))
+        message.reply_channel.send({'text': message_back})
+
+
+def disconnection_polling_disconnect(message, params):
+    session_id, player_id_in_session, participant_code = params.split(',')
+    # nothing to do here for now
 
 def connect_wait_page(message, params):
     session_pk, page_index, model_name, model_pk = params.split(',')
     session_pk = int(session_pk)
     page_index = int(page_index)
     model_pk = int(model_pk)
+
+    # set the player_disconnected flag
+    session = Session.objects.get(id=session_pk)
+    session.human_participant_disconnected = False
+    session.save()
 
     group_name = channels_wait_page_group_name(
         session_pk, page_index, model_name, model_pk
@@ -190,6 +206,11 @@ def disconnect_wait_page(message, params):
     page_index = int(page_index)
     model_pk = int(model_pk)
 
+    # set the player_disconnected flag
+    session = Session.objects.get(id=session_pk)
+    session.human_participant_disconnected = True
+    session.save()
+
     group_name = channels_wait_page_group_name(
         session_pk, page_index, model_name, model_pk
     )
@@ -203,9 +224,8 @@ def connect_auto_advance(message, params):
 
     # check if bot_opponent, if so appropriately set the player_disconnected flag
     session = Session.objects.get(code=session_code)
-    if session.bot_opponent:
-        session.human_participant_disconnected = False
-        session.save()
+    session.human_participant_disconnected = False
+    session.save()
 
     group = Group('auto-advance-{}'.format(participant_code))
     group.add(message.reply_channel)
