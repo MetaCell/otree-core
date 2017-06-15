@@ -231,9 +231,8 @@ def disconnect_auto_advance(message, params):
 
     # check if bot_opponent, if so appropriately set the player_disconnected flag
     session = Session.objects.get(code=session_code)
-    if session.bot_opponent:
-        session.human_participant_disconnected = True
-        session.save()
+    session.human_participant_disconnected = True
+    session.save()
 
     group = Group('auto-advance-{}'.format(participant_code))
     group.discard(message.reply_channel)
