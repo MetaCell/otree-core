@@ -256,7 +256,9 @@ class FormPageOrInGameWaitPageMixin(OTreeMixin):
         return context
 
     def vars_for_template(self):
-        return {}
+        return {
+            'sessionId': self.session.id
+        }
 
     def resolve_vars_for_template(self):
         """Resolve all vars for template including "vars_for_all_templates"
