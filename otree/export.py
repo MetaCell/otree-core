@@ -53,6 +53,7 @@ def _get_table_fields(Model, for_export=False):
     if Model is Session:
         # only data export
         return [
+            'id',
             'code',
             'label',
             'experimenter_name',
@@ -66,6 +67,7 @@ def _get_table_fields(Model, for_export=False):
             #'participation_fee',
             'comment',
             'is_demo',
+            'randomisation_status'
         ]
 
     if Model is Participant:
@@ -84,8 +86,10 @@ def _get_table_fields(Model, for_export=False):
                 'time_started',
                 'exclude_from_data_analysis',
                 'visited',
-                'mturk_worker_id',
-                'mturk_assignment_id',
+                'customQuestions',
+                '_external_platform',
+                '_worker_id',
+                '_completion_url'
             ]
         else:
             return [
@@ -153,8 +157,7 @@ def sanitize_for_live_update(value):
 
 def get_rows_for_wide_csv():
 
-    sessions = Session.objects.order_by('id').annotate(
-        num_participants=Count('participant')).values()
+    sessions = Session.objects.order_by('id').annotate(num_participants=Count('participant')).values()
     session_cache = {row['id']: row for row in sessions}
 
     participants = Participant.objects.order_by('id').values()
