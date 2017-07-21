@@ -160,7 +160,7 @@ def disconnection_polling_message(message, params):
             'player_disconnected': player_disconnected
         })
 
-        logger.info('disconnection_status: ' + str(player_disconnected))
+        # logger.info('disconnection_status: ' + str(player_disconnected))
         message.reply_channel.send({'text': message_back})
 
 
