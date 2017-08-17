@@ -256,10 +256,12 @@ def create_session(
                 external_platform = participant_info[index]['platform']
                 worker_id = participant_info[index]['worker_id']
                 completion_url = participant_info[index]['completion_url']
+                questionnaire_results = participant_info[index]['questionnaire_results']
             else:
                 external_platform = ''
                 worker_id = ''
                 completion_url = ''
+                questionnaire_results = ''
 
             # create object
             participant = Participant.objects.create(
@@ -271,7 +273,8 @@ def create_session(
                     # save additional participant parameters for platform, worker id and options
                     _external_platform=external_platform,
                     _worker_id=worker_id,
-                    _completion_url=completion_url
+                    _completion_url=completion_url,
+                    _questionnaire_results=questionnaire_results
             )
 
             participants.append(participant)

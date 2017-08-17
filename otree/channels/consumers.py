@@ -501,7 +501,8 @@ def ws_matchmaking_connect(message, params):
                     'reply_channel': reply_channel,
                     'platform': platform if platform is not None else '',
                     'worker_id': worker_id if worker_id is not None else '',
-                    'completion_url': ''})
+                    'completion_url': '',
+                    'questionnaire_results': ''})
 
     message = json.dumps({'status': 'QUEUE_JOINED', 'message': 'You have joined the queue for ' + game})
     reply_channel.send({'text': message})
@@ -524,7 +525,13 @@ def ws_matchmaking_message(message, params):
             if queued_player['session'] == session_id:
                 queued_player['completion_url'] = payload['message']
 
-    if payload['status'] == 'POLLING':
+    elif payload['status'] == 'SET_QUESTIONNAIRE_RESULTS':
+        # add questionnaire results to player info
+        for queued_player in settings.MATCH_MAKING_QUEUE:
+            if queued_player['session'] == session_id:
+                queued_player['questionnaire_results'] = payload['message']
+
+    elif payload['status'] == 'POLLING':
         # we use this exclusively for polling and starting sessions (with human participants and bots)
         reply_channel = message.reply_channel
         # Work out game name from path (ignore slashes)

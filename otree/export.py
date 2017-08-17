@@ -87,6 +87,7 @@ def _get_table_fields(Model, for_export=False):
                 'exclude_from_data_analysis',
                 'visited',
                 'customQuestions',
+                '_questionnaire_results',
                 '_external_platform',
                 '_worker_id',
                 '_completion_url'

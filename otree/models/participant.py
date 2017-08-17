@@ -123,6 +123,7 @@ class Participant(ModelWithVars):
     _external_platform = models.TextField(default='')
     _worker_id = models.TextField(default='')
     _completion_url = models.TextField(default='')
+    _questionnaire_results = models.TextField(default='')
 
     @property
     def external_platform(self):
@@ -135,6 +136,10 @@ class Participant(ModelWithVars):
     @property
     def completion_url(self):
         return self._completion_url
+
+    @property
+    def questionnaire_results(self):
+        return self._questionnaire_results
 
     def player_lookup(self):
         # this is the most reliable way to get the app name,
