@@ -61,10 +61,8 @@
 
     {% if runserver %}
         <div class="alert alert-danger">
-            <strong>You are using <code>otree runserver</code></strong>,
-            which is only suitable for local development.
-            When launching a real study, you should run a proper multi-process server,
-            e.g. <code>otree runprodserver</code>.
+            <strong>You are using a development server: <code>otree runserver</code></strong>.
+            You should run a production server instead, e.g. <code>otree runprodserver</code>.
         </div>
     {% else %}
         <div class="alert alert-success">
