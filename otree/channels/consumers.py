@@ -134,7 +134,7 @@ def chat_receive(message, params):
 def chat_disconnect(message, params):
     p = params.split(',')
     session_id = p[0]
-    # unregister reply channel forom session group
+    # unregister reply channel from session group
     Group("chat-%s" % session_id).discard(message.reply_channel)
     # remove session chatbot from global map
     remove_session_bot(int(session_id))
