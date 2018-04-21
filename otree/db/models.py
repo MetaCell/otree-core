@@ -276,7 +276,7 @@ class CharField(_OtreeModelFieldMixin, models.CharField):
             help_text=help_text,
             **kwargs)
 
-    auto_submit_default = auto_submit_default
+        self.auto_submit_default = auto_submit_default
 
 
 class CommaSeparatedIntegerField(_OtreeModelFieldMixin,
