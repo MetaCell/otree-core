@@ -262,6 +262,7 @@ class CharField(_OtreeModelFieldMixin, models.CharField):
             blank=False,
             null=True,
             help_text='',
+            auto_submit_default='', 
             **kwargs):
         super(CharField, self).__init__(
             choices=choices,
@@ -275,7 +276,7 @@ class CharField(_OtreeModelFieldMixin, models.CharField):
             help_text=help_text,
             **kwargs)
 
-    auto_submit_default = ''
+    auto_submit_default = auto_submit_default
 
 
 class CommaSeparatedIntegerField(_OtreeModelFieldMixin,
