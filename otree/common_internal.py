@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import
 import os
 import sys
 import datetime
@@ -15,7 +15,6 @@ import hashlib
 import requests
 import json
 import uuid
-
 
 from os.path import dirname, join
 from collections import OrderedDict
@@ -205,7 +204,6 @@ def check_pypi_for_updates():
             timeout=5,
         )
 
-        print(response.content)
         data = json.loads(response.content.decode())
     except:
         # could be requests.exceptions.Timeout
