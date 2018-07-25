@@ -201,7 +201,7 @@ def check_pypi_for_updates():
 
     try:
         response = requests.get(
-            'http://pypi.python.org/pypi/otree/json',
+            'https://pypi.python.org/pypi/otree/json',
             timeout=5,
         )
 
