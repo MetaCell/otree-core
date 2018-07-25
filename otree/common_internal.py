@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 import os
 import sys
 import datetime
@@ -204,12 +204,13 @@ def check_pypi_for_updates():
             'http://pypi.python.org/pypi/otree/json',
             timeout=5,
         )
+
+        print(response.content)
+        data = json.loads(response.content.decode())
     except:
         # could be requests.exceptions.Timeout
         # or another error (404? 500? firewall issue etc)
         return {'pypi_connection_error': True}
-
-    data = json.loads(response.content.decode())
 
     semver_re = re.compile(r'^(\d+)\.(\d+)\.(\d+)$')
 
